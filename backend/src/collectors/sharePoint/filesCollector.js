@@ -9,6 +9,7 @@ const LARGE_FILE_BYTES = 100 * 1024 * 1024; // 100 MB
 const STALE_FILE_MONTHS = 12;
 const SITES_TO_SAMPLE = 5;
 const ITEMS_PER_SITE_LIMIT = 1000;
+const QUOTA_SAMPLE_CAP = 200; // max sites to fetch drive quota for (prevents rate-limit storms)
 
 async function getSitesByStorage(tenantId) {
   const sites = await graphGetAll(tenantId, '/sites', {
@@ -16,9 +17,12 @@ async function getSitesByStorage(tenantId) {
     $select: 'id,displayName,webUrl',
   });
 
-  // Fetch drive quota for each site in parallel (bounded)
+  // Cap before parallelizing to avoid overwhelming the Graph API with 1000+ concurrent requests
+  const siteSample = sites.slice(0, QUOTA_SAMPLE_CAP);
+
+  // Fetch drive quota in parallel (bounded by QUOTA_SAMPLE_CAP)
   const withQuota = await Promise.allSettled(
-    sites.map(async (site) => {
+    siteSample.map(async (site) => {
       try {
         const drive = await graphGet(tenantId, `/sites/${site.id}/drive`, { $select: 'id,quota' });
         return { ...site, driveId: drive.id, storageBytes: drive.quota?.used ?? 0 };

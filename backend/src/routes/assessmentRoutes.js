@@ -13,6 +13,9 @@ const logger = require('../logger');
 
 const router = express.Router();
 
+// In-memory job tracker: tenantId → { status, domains, startedAt, completedAt?, error? }
+const jobs = new Map();
+
 function requireConsent(req, res, next) {
   const { tenantId } = req.body;
   if (!tenantId) return res.status(400).json({ error: 'tenantId is required' });
@@ -22,57 +25,90 @@ function requireConsent(req, res, next) {
   next();
 }
 
-// POST /assessment/start — runs all domains + generates recommendations
-router.post('/start', requireConsent, async (req, res) => {
-  const { tenantId } = req.body;
-  logger.info({ event: 'full_assessment_requested', tenantId });
+async function runAssessmentBackground(tenantId) {
+  const job = jobs.get(tenantId);
+  logger.info({ event: 'full_assessment_started', tenantId });
 
   try {
-    const [baseline, entraId, sharePoint, governance, emailSecurity] = await Promise.allSettled([
-      runBaselineAssessment(tenantId),
-      runEntraIdAssessment(tenantId),
-      runSharePointAssessment(tenantId),
-      runGovernanceAssessment(tenantId),
-      runEmailSecurityAssessment(tenantId),
-    ]);
+    const domainResults = {};
+    const runners = [
+      { key: 'baseline',      fn: () => runBaselineAssessment(tenantId) },
+      { key: 'entraId',       fn: () => runEntraIdAssessment(tenantId) },
+      { key: 'sharePoint',    fn: () => runSharePointAssessment(tenantId) },
+      { key: 'governance',    fn: () => runGovernanceAssessment(tenantId) },
+      { key: 'emailSecurity', fn: () => runEmailSecurityAssessment(tenantId) },
+    ];
 
-    const domains = {
-      baseline:      baseline.status === 'fulfilled'      ? baseline.value      : { error: baseline.reason?.message },
-      entraId:       entraId.status === 'fulfilled'       ? entraId.value       : { error: entraId.reason?.message },
-      sharePoint:    sharePoint.status === 'fulfilled'    ? sharePoint.value    : { error: sharePoint.reason?.message },
-      governance:    governance.status === 'fulfilled'    ? governance.value    : { error: governance.reason?.message },
-      emailSecurity: emailSecurity.status === 'fulfilled' ? emailSecurity.value : { error: emailSecurity.reason?.message },
-    };
+    await Promise.allSettled(runners.map(async ({ key, fn }) => {
+      try {
+        domainResults[key] = await fn();
+        job.domains[key] = 'done';
+      } catch (err) {
+        domainResults[key] = { error: err.response?.data?.error?.message || err.message };
+        job.domains[key] = 'error';
+        logger.error({ event: 'domain_error', domain: key, tenantId, error: err.message });
+      }
+    }));
 
-    // iaReadiness is synchronous — runs after domain data is ready
-    domains.iaReadiness = assessIAReadiness(tenantId, domains);
+    domainResults.iaReadiness = assessIAReadiness(tenantId, domainResults);
 
-    const scores = Object.values(domains)
+    const scores = Object.values(domainResults)
       .map((d) => d.domainScore)
       .filter((s) => typeof s === 'number');
     const overallScore = scores.length > 0
       ? Math.round((scores.reduce((a, b) => a + b, 0) / scores.length) * 10) / 10
       : null;
 
-    const tenantName = domains.baseline?.collectors?.tenantInfo?.displayName || null;
-    const entraIdTier = domains.baseline?.entraIdTier || null;
-
     const result = {
       tenantId,
-      tenantName,
-      entraIdTier,
+      tenantName: domainResults.baseline?.collectors?.tenantInfo?.displayName || null,
+      entraIdTier: domainResults.baseline?.entraIdTier || null,
       assessedAt: new Date().toISOString(),
       overallScore,
-      domains,
-      recommendations: generateRecommendations(domains),
+      domains: domainResults,
+      recommendations: generateRecommendations(domainResults),
     };
 
     resultsStore.save(tenantId, result);
-    res.json(result);
+    job.status = 'completed';
+    job.completedAt = new Date().toISOString();
+    logger.info({ event: 'full_assessment_completed', tenantId, overallScore });
   } catch (err) {
+    job.status = 'failed';
+    job.error = err.message;
     logger.error({ event: 'assessment_failed', tenantId, error: err.message });
-    res.status(500).json({ error: 'Assessment failed', detail: err.message });
   }
+}
+
+// POST /assessment/start — starts async assessment, returns immediately
+router.post('/start', requireConsent, (req, res) => {
+  const { tenantId } = req.body;
+
+  // If already running, return current status (don't start a second job)
+  const existing = jobs.get(tenantId);
+  if (existing?.status === 'running') {
+    return res.json({ status: 'running', tenantId });
+  }
+
+  const job = { status: 'running', domains: {}, startedAt: new Date().toISOString() };
+  jobs.set(tenantId, job);
+
+  runAssessmentBackground(tenantId); // fire and forget — no await
+  logger.info({ event: 'assessment_queued', tenantId });
+  res.json({ status: 'running', tenantId });
+});
+
+// GET /assessment/jobs/:tenantId — polling endpoint for async assessment progress
+router.get('/jobs/:tenantId', (req, res) => {
+  const { tenantId } = req.params;
+  const job = jobs.get(tenantId);
+  if (job) return res.json(job);
+
+  // No in-memory job — check disk (e.g. server restarted after a completed assessment)
+  const saved = resultsStore.getLatest(tenantId);
+  if (saved) return res.json({ status: 'completed', domains: {}, completedAt: saved.assessedAt });
+
+  res.status(404).json({ error: 'No job found for this tenant' });
 });
 
 // POST /assessment/entra

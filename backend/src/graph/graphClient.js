@@ -38,10 +38,11 @@ async function graphGet(tenantId, path, params = {}, opts = {}) {
 }
 
 // Auto-paginate: follows @odata.nextLink until exhausted
-async function graphGetAll(tenantId, path, params = {}) {
+async function graphGetAll(tenantId, path, params = {}, { maxRateLimitRetries = 10 } = {}) {
   const results = [];
   let nextUrl = `${GRAPH_BASE}${path}`;
   let firstRequest = true;
+  let rateLimitHits = 0;
 
   while (nextUrl) {
     try {
@@ -55,8 +56,13 @@ async function graphGetAll(tenantId, path, params = {}) {
       firstRequest = false;
     } catch (err) {
       if (err.response?.status === 429) {
+        rateLimitHits++;
+        if (rateLimitHits > maxRateLimitRetries) {
+          logger.error({ event: 'rate_limit_max_retries_exceeded', path, rateLimitHits });
+          throw new Error(`Rate limit exceeded after ${maxRateLimitRetries} retries on ${path}`);
+        }
         const wait = parseInt(err.response.headers['retry-after'] || '10', 10) * 1000;
-        logger.warn({ event: 'rate_limited', path, waitMs: wait });
+        logger.warn({ event: 'rate_limited', path, waitMs: wait, attempt: rateLimitHits });
         await sleep(wait);
         continue;
       }

@@ -93,6 +93,7 @@ export default function App() {
   const [result, setResult] = useState(null)
   const [screen, setScreen] = useState('overview')
   const [savedReports, setSavedReports] = useState([])
+  const [progress, setProgress] = useState(null)
 
   useEffect(() => {
     fetch('/assessment/results')
@@ -124,11 +125,46 @@ export default function App() {
       .catch(() => {})
   }
 
+  async function pollJobStatus(id) {
+    for (;;) {
+      await new Promise(r => setTimeout(r, 4000))
+      try {
+        const res = await fetch(`/assessment/jobs/${id}`)
+        if (!res.ok) continue
+        const job = await res.json()
+        setProgress(job)
+        if (job.status === 'completed') {
+          const r = await fetch(`/assessment/results/${id}`)
+          if (!r.ok) throw new Error('Falha ao carregar resultado')
+          const data = await r.json()
+          setResult(data)
+          setScreen('overview')
+          refreshSavedReports()
+          setLoading(false)
+          setProgress(null)
+          return
+        }
+        if (job.status === 'failed') {
+          throw new Error(job.error || 'Assessment falhou')
+        }
+      } catch (err) {
+        if (err.message.includes('falhou') || err.message.includes('Falha')) {
+          setError(err.message)
+          setLoading(false)
+          setProgress(null)
+          return
+        }
+        // Network hiccup — keep polling
+      }
+    }
+  }
+
   async function runAssessment() {
     const id = tenantId.trim() || result?.tenantId
     if (!id) return
     setLoading(true)
     setError(null)
+    setProgress(null)
     try {
       const res = await fetch('/assessment/start', {
         method: 'POST',
@@ -139,13 +175,13 @@ export default function App() {
         const body = await res.json().catch(() => ({}))
         throw new Error(body.error || `HTTP ${res.status}`)
       }
-      const data = await res.json()
-      setResult(data)
-      setScreen('overview')
-      refreshSavedReports()
+      pollJobStatus(id).catch(err => {
+        setError(err.message)
+        setLoading(false)
+        setProgress(null)
+      })
     } catch (err) {
       setError(err.message)
-    } finally {
       setLoading(false)
     }
   }
@@ -155,10 +191,41 @@ export default function App() {
     if (screen === 'consent') return <ConsentScreen />
 
     if (loading) {
+      const DOMAIN_LABELS = [
+        { key: 'baseline',      label: 'Baseline' },
+        { key: 'entraId',       label: 'Entra ID' },
+        { key: 'sharePoint',    label: 'SharePoint' },
+        { key: 'governance',    label: 'Governança' },
+        { key: 'emailSecurity', label: 'Email Security' },
+      ]
+      const doneCount = progress ? Object.values(progress.domains || {}).filter(v => v === 'done' || v === 'error').length : 0
       return (
-        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100%', gap: 16 }}>
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100%', gap: 20 }}>
           <div style={{ width: 40, height: 40, border: '3px solid var(--border-1)', borderTopColor: 'var(--brand-500)', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} />
-          <div className="t-sm">Executando assessment — pode levar até 60 segundos…</div>
+          <div className="t-sm" style={{ color: 'var(--fg-2)' }}>
+            {progress ? `Coletando dados… ${doneCount}/5 domínios` : 'Iniciando assessment…'}
+          </div>
+          {progress && (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 6, minWidth: 200 }}>
+              {DOMAIN_LABELS.map(({ key, label }) => {
+                const s = progress.domains?.[key]
+                return (
+                  <div key={key} style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                    <div style={{
+                      width: 18, height: 18, borderRadius: 999, flexShrink: 0,
+                      background: s === 'done' ? '#16A34A' : s === 'error' ? '#DC2626' : 'var(--bg-subtle)',
+                      border: `1px solid ${s === 'done' ? '#16A34A' : s === 'error' ? '#DC2626' : 'var(--border-2)'}`,
+                      display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      fontSize: 10, color: '#fff', fontWeight: 700,
+                    }}>
+                      {s === 'done' ? '✓' : s === 'error' ? '✗' : ''}
+                    </div>
+                    <span className="t-sm" style={{ color: s ? 'var(--fg-1)' : 'var(--fg-3)' }}>{label}</span>
+                  </div>
+                )
+              })}
+            </div>
+          )}
           <style>{`@keyframes spin { to { transform: rotate(360deg) } }`}</style>
         </div>
       )
