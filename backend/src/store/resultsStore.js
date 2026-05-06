@@ -38,6 +38,7 @@ function listLatestAll() {
       const data = JSON.parse(fs.readFileSync(path.join(RESULTS_DIR, f), 'utf8'));
       return {
         tenantId: data.tenantId,
+        tenantName: data.tenantName || null,
         assessedAt: data.assessedAt,
         overallScore: data.overallScore,
         recommendations: data.recommendations?.bySeverity,

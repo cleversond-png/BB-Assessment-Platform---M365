@@ -42,15 +42,35 @@ async function collectPrivileged(tenantId) {
   const globalAdminCount = privilegedUsers.filter((u) => u.role === 'Global Administrator').length;
   const guestPrivileged = privilegedUsers.filter((u) => u.userType === 'Guest');
 
+  // Enrich users with MFA status (requires Entra P1)
+  let mfaByUpn = null;
+  try {
+    const mfaData = await graphGetAll(tenantId, '/reports/authenticationMethods/userRegistrationDetails', {
+      $select: 'userPrincipalName,isMfaRegistered',
+    });
+    mfaByUpn = new Map(mfaData.map((u) => [u.userPrincipalName?.toLowerCase(), u.isMfaRegistered]));
+  } catch (err) {
+    logger.warn({ event: 'mfa_data_unavailable', collector: 'privileged', tenantId, status: err.response?.status });
+  }
+
+  for (const user of privilegedUsers) {
+    user.mfaRegistered = mfaByUpn ? (mfaByUpn.get(user.userPrincipalName?.toLowerCase()) ?? null) : null;
+  }
+
+  const adminsWithoutMfa = mfaByUpn
+    ? privilegedUsers.filter((u) => u.mfaRegistered === false).length
+    : null;
+
   // Score 0–5: privileged access hygiene
   // Deduct points for over-provisioning
   let score = 5;
   if (globalAdminCount > 5) score -= 2;
   else if (globalAdminCount > 2) score -= 1;
   if (guestPrivileged.length > 0) score -= 2;
+  if (adminsWithoutMfa > 0) score -= 1;
   score = Math.max(score, 0);
 
-  logger.info({ event: 'collector_done', collector: 'privileged', tenantId, totalPrivileged: privilegedUsers.length, globalAdminCount });
+  logger.info({ event: 'collector_done', collector: 'privileged', tenantId, totalPrivileged: privilegedUsers.length, globalAdminCount, adminsWithoutMfa });
 
   return {
     collector: 'privileged',
@@ -59,6 +79,8 @@ async function collectPrivileged(tenantId) {
       totalPrivilegedAssignments: privilegedUsers.length,
       globalAdminCount,
       guestPrivilegedCount: guestPrivileged.length,
+      mfaDataAvailable: mfaByUpn !== null,
+      adminsWithoutMfa,
     },
     privilegedUsers,
     guestPrivileged,

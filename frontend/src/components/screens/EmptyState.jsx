@@ -1,4 +1,12 @@
-export default function EmptyState({ tenantId, setTenantId, onRun, loading, error }) {
+function scoreColor(v) {
+  if (v == null) return 'var(--fg-3)'
+  if (v >= 4) return 'var(--score-5)'
+  if (v >= 3) return 'var(--score-3)'
+  if (v >= 2) return 'var(--score-2)'
+  return 'var(--score-0)'
+}
+
+export default function EmptyState({ tenantId, setTenantId, onRun, loading, error, savedReports = [], onLoad }) {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100%', gap: 24, padding: 32 }}>
       <div style={{
@@ -15,6 +23,50 @@ export default function EmptyState({ tenantId, setTenantId, onRun, loading, erro
         <h1 className="t-h1" style={{ marginBottom: 8 }}>Assessment Platform</h1>
         <p className="t-sm">Insira o Tenant ID do cliente Microsoft 365 e clique em Rodar Assessment para iniciar a análise técnica completa.</p>
       </div>
+
+      {savedReports.length > 0 && (
+        <div style={{ width: '100%', maxWidth: 560 }}>
+          <div className="t-2xs" style={{ marginBottom: 10, textAlign: 'center' }}>Relatórios salvos — clique para carregar</div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+            {savedReports.map(r => {
+              const color = scoreColor(r.overallScore)
+              const date = r.assessedAt
+                ? new Date(r.assessedAt).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })
+                : '—'
+              return (
+                <button key={r.tenantId} onClick={() => onLoad(r.tenantId)} style={{
+                  display: 'flex', alignItems: 'center', gap: 14,
+                  padding: '12px 16px', borderRadius: 'var(--r-xl)',
+                  background: 'var(--bg-card)', border: '1px solid var(--border-1)',
+                  boxShadow: 'var(--shadow-1)', cursor: 'pointer', textAlign: 'left',
+                  fontFamily: 'inherit',
+                }}>
+                  <div style={{
+                    width: 40, height: 40, borderRadius: 8, flexShrink: 0,
+                    background: `${color}1A`, color, display: 'flex', alignItems: 'center',
+                    justifyContent: 'center', fontWeight: 700, fontSize: 14,
+                  }}>
+                    {r.overallScore != null ? r.overallScore.toFixed(1) : '—'}
+                  </div>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div className="t-sm" style={{ fontWeight: 600, color: 'var(--fg-1)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                      {r.tenantName || r.tenantId}
+                    </div>
+                    <div className="t-xs" style={{ color: 'var(--fg-3)', marginTop: 2 }}>{date}</div>
+                  </div>
+                  <span style={{ flexShrink: 0, fontSize: 12, color: 'var(--brand-500)', fontWeight: 500 }}>Ver →</span>
+                </button>
+              )
+            })}
+          </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12, margin: '16px 0 0' }}>
+            <div style={{ flex: 1, height: 1, background: 'var(--border-1)' }} />
+            <span className="t-xs" style={{ color: 'var(--fg-3)' }}>ou rodar novo assessment</span>
+            <div style={{ flex: 1, height: 1, background: 'var(--border-1)' }} />
+          </div>
+        </div>
+      )}
+
       <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
         <input
           value={tenantId}

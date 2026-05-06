@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import AppHeader from './components/shell/AppHeader.jsx'
 import SideNav from './components/shell/SideNav.jsx'
 import EmptyState from './components/screens/EmptyState.jsx'
@@ -11,12 +11,118 @@ import ConsentScreen from './components/screens/ConsentScreen.jsx'
 
 const DOMAIN_IDS = ['baseline', 'entraId', 'sharePoint', 'governance', 'emailSecurity']
 
+function scoreColor(v) {
+  if (v == null) return 'var(--fg-3)'
+  if (v >= 4) return 'var(--score-5)'
+  if (v >= 3) return 'var(--score-3)'
+  if (v >= 2) return 'var(--score-2)'
+  return 'var(--score-0)'
+}
+
+function SavedReportsList({ reports, onLoad, activeId }) {
+  if (reports.length === 0) {
+    return (
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+        <div className="t-h1">Clientes</div>
+        <div className="t-sm" style={{ color: 'var(--fg-3)' }}>Nenhum relatório salvo ainda. Execute um assessment para ver os resultados aqui.</div>
+      </div>
+    )
+  }
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+      <div className="t-h1">Clientes</div>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+        {reports.map(r => {
+          const isActive = r.tenantId === activeId
+          const date = r.assessedAt ? new Date(r.assessedAt).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : '—'
+          const color = scoreColor(r.overallScore)
+          const critical = r.recommendations?.critical ?? 0
+          const high = r.recommendations?.high ?? 0
+          return (
+            <div key={r.tenantId} style={{
+              display: 'flex', alignItems: 'center', gap: 16,
+              padding: '14px 18px', borderRadius: 'var(--r-xl)',
+              background: isActive ? 'var(--brand-50)' : 'var(--bg-card)',
+              border: `1px solid ${isActive ? 'var(--brand-200)' : 'var(--border-1)'}`,
+              boxShadow: 'var(--shadow-1)',
+            }}>
+              <div style={{
+                width: 44, height: 44, borderRadius: 10, flexShrink: 0,
+                background: `${color}1A`, color, display: 'flex', alignItems: 'center',
+                justifyContent: 'center', fontWeight: 700, fontSize: 15,
+              }}>
+                {r.overallScore != null ? r.overallScore.toFixed(1) : '—'}
+              </div>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div className="t-sm" style={{ fontWeight: 600, color: 'var(--fg-1)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                  {r.tenantName || r.tenantId}
+                </div>
+                <div className="t-xs" style={{ color: 'var(--fg-3)', display: 'flex', gap: 10, marginTop: 2 }}>
+                  <span>{date}</span>
+                  {(critical > 0 || high > 0) && (
+                    <span style={{ color: critical > 0 ? 'var(--score-0)' : 'var(--score-2)' }}>
+                      {critical > 0 ? `${critical} crítico${critical > 1 ? 's' : ''}` : `${high} alto${high > 1 ? 's' : ''}`}
+                    </span>
+                  )}
+                </div>
+              </div>
+              {isActive
+                ? <span className="t-xs" style={{ color: 'var(--brand-500)', fontWeight: 600, flexShrink: 0 }}>Ativo</span>
+                : (
+                  <button onClick={() => onLoad(r.tenantId)} style={{
+                    flexShrink: 0, height: 32, padding: '0 14px', borderRadius: 'var(--r-md)',
+                    background: 'var(--brand-500)', color: '#fff', border: 'none',
+                    fontSize: 13, fontWeight: 500, fontFamily: 'inherit', cursor: 'pointer',
+                  }}>
+                    Ver relatório
+                  </button>
+                )
+              }
+            </div>
+          )
+        })}
+      </div>
+    </div>
+  )
+}
+
 export default function App() {
   const [tenantId, setTenantId] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState(null)
   const [result, setResult] = useState(null)
   const [screen, setScreen] = useState('overview')
+  const [savedReports, setSavedReports] = useState([])
+
+  useEffect(() => {
+    fetch('/assessment/results')
+      .then(r => r.ok ? r.json() : [])
+      .then(setSavedReports)
+      .catch(() => {})
+  }, [])
+
+  async function loadResult(id) {
+    setLoading(true)
+    setError(null)
+    try {
+      const res = await fetch(`/assessment/results/${id}`)
+      if (!res.ok) throw new Error(`HTTP ${res.status}`)
+      const data = await res.json()
+      setResult(data)
+      setScreen('overview')
+    } catch (err) {
+      setError(err.message)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  function refreshSavedReports() {
+    fetch('/assessment/results')
+      .then(r => r.ok ? r.json() : [])
+      .then(setSavedReports)
+      .catch(() => {})
+  }
 
   async function runAssessment() {
     const id = tenantId.trim() || result?.tenantId
@@ -36,6 +142,7 @@ export default function App() {
       const data = await res.json()
       setResult(data)
       setScreen('overview')
+      refreshSavedReports()
     } catch (err) {
       setError(err.message)
     } finally {
@@ -58,7 +165,7 @@ export default function App() {
     }
 
     if (!result) {
-      return <EmptyState tenantId={tenantId} setTenantId={setTenantId} onRun={runAssessment} loading={loading} error={error} />
+      return <EmptyState tenantId={tenantId} setTenantId={setTenantId} onRun={runAssessment} loading={loading} error={error} savedReports={savedReports} onLoad={loadResult} />
     }
 
     if (DOMAIN_IDS.includes(screen)) {
@@ -88,12 +195,7 @@ export default function App() {
           </div>
         )
       case 'tenants':
-        return (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-            <div className="t-h1">Tenants</div>
-            <div className="t-sm">Em breve — esta seção listará todos os tenants com consent ativo e permitirá gerenciar o ciclo de vida.</div>
-          </div>
-        )
+        return <SavedReportsList reports={savedReports} onLoad={loadResult} activeId={result?.tenantId} />
       case 'consent':
         return <ConsentScreen />
       default:

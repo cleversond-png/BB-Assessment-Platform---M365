@@ -456,6 +456,58 @@ function UsersDetailContent({ data }) {
   )
 }
 
+function PrivilegedDetailContent({ data }) {
+  const users = data?.privilegedUsers || []
+  const s = data?.summary || {}
+  const mfaAvailable = s.mfaDataAvailable !== false
+
+  if (users.length === 0) {
+    return <div className="t-sm" style={{ color: 'var(--fg-3)' }}>Nenhum usuário privilegiado encontrado.</div>
+  }
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+      {!mfaAvailable && (
+        <div className="t-xs" style={{ color: 'var(--fg-3)', marginBottom: 8 }}>
+          Status de MFA indisponível — Entra P1 necessário para este relatório.
+        </div>
+      )}
+      {users.map((u, i) => (
+        <div key={i} style={{
+          display: 'flex', alignItems: 'center', gap: 10,
+          padding: '8px 10px', borderRadius: 8,
+          background: 'var(--bg-subtle)', border: '1px solid var(--border-1)',
+        }}>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div className="t-sm" style={{ fontWeight: 500, color: 'var(--fg-1)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+              {u.displayName || u.userPrincipalName}
+            </div>
+            <div className="t-xs" style={{ color: 'var(--fg-3)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+              {u.userPrincipalName}
+            </div>
+          </div>
+          <span translate="no" style={{
+            flexShrink: 0, fontSize: 10, fontWeight: 500,
+            padding: '2px 6px', borderRadius: 4,
+            background: 'var(--brand-50)', color: 'var(--brand-600)',
+            border: '1px solid var(--brand-200)', whiteSpace: 'nowrap',
+          }}>
+            {u.role}
+          </span>
+          {mfaAvailable && (
+            <span style={{
+              flexShrink: 0, fontSize: 11, fontWeight: 600, minWidth: 44, textAlign: 'right',
+              color: u.mfaRegistered ? '#16A34A' : '#DC2626',
+            }}>
+              {u.mfaRegistered ? '✓ MFA' : '✗ MFA'}
+            </span>
+          )}
+        </div>
+      ))}
+    </div>
+  )
+}
+
 function ScoreChip({ value, compact }) {
   const color = scoreColor(value)
   if (compact) {
@@ -492,10 +544,11 @@ function CollectorDetail({ id, data, weight }) {
       </div>
       <div>
         <div className="t-2xs" style={{ marginBottom: 6 }}>Achado</div>
-        {id === 'usage'    ? <UsageDetailContent data={data} />
-          : id === 'licensing' ? <LicensingDetailContent data={data} />
-          : id === 'users'     ? <UsersDetailContent data={data} />
-          : id === 'storage'   ? <StorageDetailContent data={data} />
+        {id === 'usage'       ? <UsageDetailContent data={data} />
+          : id === 'licensing'  ? <LicensingDetailContent data={data} />
+          : id === 'users'      ? <UsersDetailContent data={data} />
+          : id === 'storage'    ? <StorageDetailContent data={data} />
+          : id === 'privileged' ? <PrivilegedDetailContent data={data} />
           : <div className="t-body">{detail}</div>
         }
       </div>
