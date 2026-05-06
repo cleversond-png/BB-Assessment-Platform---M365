@@ -1,5 +1,6 @@
 const express = require('express');
 const cors = require('cors');
+const path = require('path');
 const { validateConfig, server: serverConfig } = require('./config');
 const authRoutes = require('./routes/authRoutes');
 const assessmentRoutes = require('./routes/assessmentRoutes');
@@ -17,6 +18,12 @@ app.use('/auth', authRoutes);
 app.use('/assessment', assessmentRoutes);
 
 app.get('/health', (_req, res) => res.json({ status: 'ok' }));
+
+if (process.env.NODE_ENV === 'production') {
+  const distPath = path.join(__dirname, '../../frontend/dist');
+  app.use(express.static(distPath));
+  app.get('*', (_req, res) => res.sendFile(path.join(distPath, 'index.html')));
+}
 
 app.listen(serverConfig.port, async () => {
   logger.info({ event: 'server_started', port: serverConfig.port });

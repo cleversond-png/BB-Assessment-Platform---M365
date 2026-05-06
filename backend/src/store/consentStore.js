@@ -2,7 +2,9 @@ const fs = require('fs');
 const path = require('path');
 const logger = require('../logger');
 
-const FILE = path.resolve(__dirname, '../../data/consented_tenants.json');
+const DATA_DIR = process.env.DATA_DIR || path.resolve(__dirname, '../../data');
+fs.mkdirSync(DATA_DIR, { recursive: true });
+const FILE = path.join(DATA_DIR, 'consented_tenants.json');
 
 function load() {
   try {

@@ -2,7 +2,9 @@ const fs = require('fs');
 const path = require('path');
 const logger = require('../logger');
 
-const RESULTS_DIR = path.resolve(__dirname, '../../data/results');
+const RESULTS_DIR = process.env.DATA_DIR
+  ? path.join(process.env.DATA_DIR, 'results')
+  : path.resolve(__dirname, '../../data/results');
 
 function ensureDir() {
   if (!fs.existsSync(RESULTS_DIR)) fs.mkdirSync(RESULTS_DIR, { recursive: true });
@@ -41,7 +43,7 @@ function listLatestAll() {
         recommendations: data.recommendations?.bySeverity,
       };
     })
-    .sort((a, b) => (a.overallScore ?? 99) - (b.overallScore ?? 99)); // worst first
+    .sort((a, b) => (a.overallScore ?? 99) - (b.overallScore ?? 99));
 }
 
 function deleteAllForTenant(tenantId) {
