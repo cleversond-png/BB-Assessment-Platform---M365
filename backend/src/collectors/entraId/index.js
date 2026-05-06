@@ -1,0 +1,58 @@
+const { collectMfa } = require('./mfaCollector');
+const { collectConditionalAccess } = require('./caCollector');
+const { collectPrivileged } = require('./privilegedCollector');
+const { collectGuests } = require('./guestCollector');
+const { collectRiskyUsers } = require('./riskyUsersCollector');
+const logger = require('../../logger');
+
+const COLLECTOR_WEIGHTS = { mfa: 2, conditionalAccess: 2, privileged: 2, guests: 1, riskyUsers: 2 };
+const MAX_WEIGHT = Object.values(COLLECTOR_WEIGHTS).reduce((a, b) => a + b, 0);
+
+async function runEntraIdAssessment(tenantId) {
+  logger.info({ event: 'assessment_start', domain: 'entraId', tenantId });
+
+  const collectors = [
+    { name: 'mfa', fn: () => collectMfa(tenantId) },
+    { name: 'conditionalAccess', fn: () => collectConditionalAccess(tenantId) },
+    { name: 'privileged', fn: () => collectPrivileged(tenantId) },
+    { name: 'guests', fn: () => collectGuests(tenantId) },
+    { name: 'riskyUsers', fn: () => collectRiskyUsers(tenantId) },
+  ];
+
+  const results = {};
+  const errors = {};
+
+  await Promise.allSettled(collectors.map(async ({ name, fn }) => {
+    try {
+      results[name] = await fn();
+    } catch (err) {
+      logger.error({ event: 'collector_error', collector: name, tenantId, error: err.message });
+      errors[name] = err.response?.data?.error?.message || err.message;
+    }
+  }));
+
+  // Weighted score: unavailable collectors (no premium license) count as 0 with full weight
+  // so the domain score reflects the gap, not just the collectors that ran.
+  let weightedSum = 0;
+  const totalWeight = Object.values(COLLECTOR_WEIGHTS).reduce((a, b) => a + b, 0);
+  for (const [name, weight] of Object.entries(COLLECTOR_WEIGHTS)) {
+    if (results[name]) {
+      weightedSum += results[name].score * weight;
+    }
+    // errors and missing collectors contribute 0 (already the default)
+  }
+  const domainScore = Math.round((weightedSum / (totalWeight * 5)) * 5 * 10) / 10;
+
+  logger.info({ event: 'assessment_done', domain: 'entraId', tenantId, domainScore });
+
+  return {
+    domain: 'entraId',
+    tenantId,
+    assessedAt: new Date().toISOString(),
+    domainScore,
+    collectors: results,
+    errors: Object.keys(errors).length > 0 ? errors : undefined,
+  };
+}
+
+module.exports = { runEntraIdAssessment };

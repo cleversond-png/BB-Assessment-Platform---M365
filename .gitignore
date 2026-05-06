@@ -1,0 +1,17 @@
+# Dependencies
+node_modules/
+
+# Environment — never commit secrets
+backend/.env
+
+# Assessment data — tenant-specific, stays local
+backend/data/results/
+backend/data/consented_tenants.json
+
+# Frontend build output
+frontend/dist/
+
+# OS / editor
+.DS_Store
+*.swp
+.vscode/
