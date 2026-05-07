@@ -3,6 +3,26 @@ const crypto = require('crypto');
 const config = require('../config');
 const tokenStore = require('./tokenStore');
 
+// Lista canônica de permissões Microsoft Graph (Application/Role) que a App Registration
+// precisa ter aprovadas. Mantenha em sincronia com azure/app-registration-permissions.json.
+const REQUIRED_PERMISSIONS = [
+  { name: 'AuditLog.Read.All',                  category: 'Governança',     collectors: ['audit', 'usersBaseline (inactiveUsers)'] },
+  { name: 'DataLossPreventionPolicy.Read.All',  category: 'Governança',     collectors: ['dlp'] },
+  { name: 'ExternalConnection.Read.All',        category: 'Copilot',        collectors: ['copilotExtensions'] },
+  { name: 'Files.Read.All',                     category: 'SharePoint',     collectors: ['files'] },
+  { name: 'IdentityRiskyUser.Read.All',         category: 'Identidade',     collectors: ['riskyUsers'], requires: 'Entra ID P2' },
+  { name: 'InformationProtectionPolicy.Read.All', category: 'Governança',   collectors: ['sensitivityLabels'] },
+  { name: 'Organization.Read.All',              category: 'Baseline',       collectors: ['tenantInfo', 'licensing'] },
+  { name: 'Policy.Read.All',                    category: 'Identidade',     collectors: ['conditionalAccess'], requires: 'Entra ID P1' },
+  { name: 'RecordsManagement.Read.All',         category: 'Governança',     collectors: ['retentionPolicies'] },
+  { name: 'Reports.Read.All',                   category: 'Baseline',       collectors: ['usage', 'appsChannel'] },
+  { name: 'RoleManagement.Read.Directory',      category: 'Identidade',     collectors: ['privileged (PIM)'] },
+  { name: 'SharePointTenantSettings.Read.All',  category: 'SharePoint',     collectors: ['permissions (OneDrive global)'] },
+  { name: 'Sites.Read.All',                     category: 'SharePoint',     collectors: ['permissions', 'ownership', 'oversharing'] },
+  { name: 'User.Read.All',                      category: 'Baseline',       collectors: ['users', 'guests', 'ownership'] },
+  { name: 'UserAuthenticationMethod.Read.All',  category: 'Identidade',     collectors: ['mfa'], requires: 'Entra ID P1' },
+];
+
 // Pending consent requests: state -> tenantId (CSRF protection)
 const pendingStates = new Map();
 
@@ -52,4 +72,4 @@ async function acquireTokenForTenant(tenantId) {
   return tokenStore.getToken(tenantId);
 }
 
-module.exports = { generateConsentUrl, validateState, acquireTokenForTenant };
+module.exports = { generateConsentUrl, validateState, acquireTokenForTenant, REQUIRED_PERMISSIONS };

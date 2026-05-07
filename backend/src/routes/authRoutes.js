@@ -70,6 +70,12 @@ router.get('/callback', async (req, res) => {
   }
 });
 
+// GET /auth/required-permissions
+// Lista canônica de permissões Microsoft Graph que a App Registration precisa
+router.get('/required-permissions', (_req, res) => {
+  res.json({ permissions: authService.REQUIRED_PERMISSIONS });
+});
+
 // GET /auth/tenants
 // Lists all registered tenants with their consent status
 router.get('/tenants', (req, res) => {

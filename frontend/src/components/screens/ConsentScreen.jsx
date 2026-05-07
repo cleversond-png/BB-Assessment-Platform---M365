@@ -108,6 +108,7 @@ export default function ConsentScreen() {
   const [genError, setGenError] = useState(null)
   const [tenants, setTenants] = useState([])
   const [loadingList, setLoadingList] = useState(false)
+  const [permissions, setPermissions] = useState([])
 
   const loadTenants = useCallback(async () => {
     setLoadingList(true)
@@ -121,6 +122,13 @@ export default function ConsentScreen() {
   }, [])
 
   useEffect(() => { loadTenants() }, [loadTenants])
+
+  useEffect(() => {
+    fetch('/auth/required-permissions')
+      .then(r => r.ok ? r.json() : { permissions: [] })
+      .then(d => setPermissions(d.permissions || []))
+      .catch(() => {})
+  }, [])
 
   async function generate() {
     if (!form.tenantId.trim()) return
@@ -330,7 +338,70 @@ export default function ConsentScreen() {
         </div>
       </div>
 
+      {permissions.length > 0 && <PermissionsPanel permissions={permissions} />}
+
       <style>{`@keyframes spin { to { transform: rotate(360deg) } }`}</style>
+    </div>
+  )
+}
+
+function PermissionsPanel({ permissions }) {
+  const [copied, setCopied] = useState(false)
+  const text = permissions.map(p => `${p.name}  —  ${p.collectors.join(', ')}`).join('\n')
+  function copyAll() {
+    navigator.clipboard.writeText(text).then(() => {
+      setCopied(true)
+      setTimeout(() => setCopied(false), 2000)
+    })
+  }
+  const grouped = permissions.reduce((acc, p) => {
+    (acc[p.category] = acc[p.category] || []).push(p)
+    return acc
+  }, {})
+  return (
+    <div style={{
+      borderRadius: 'var(--r-lg)',
+      background: 'var(--bg-card)', border: '1px solid var(--border-1)',
+      overflow: 'hidden',
+    }}>
+      <div style={{
+        padding: '12px 16px', borderBottom: '1px solid var(--border-1)',
+        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+      }}>
+        <div>
+          <div style={{ fontWeight: 600, fontSize: 14, color: 'var(--fg-1)' }}>
+            Permissões da App Registration
+          </div>
+          <div className="t-xs" style={{ marginTop: 2 }}>
+            {permissions.length} permissões Microsoft Graph (application). Quando uma nova é adicionada, todos os tenants precisam fazer re-consent.
+          </div>
+        </div>
+        <button onClick={copyAll} style={{
+          padding: '6px 12px', borderRadius: 6, fontSize: 12, cursor: 'pointer',
+          background: copied ? 'var(--ok-bg)' : '#fff', border: '1px solid var(--border-2)',
+          color: copied ? 'var(--ok-fg)' : 'var(--fg-2)', fontWeight: 500, fontFamily: 'inherit',
+        }}>{copied ? 'Copiado!' : 'Copiar lista'}</button>
+      </div>
+      <div style={{ padding: 16, display: 'flex', flexDirection: 'column', gap: 14 }}>
+        {Object.entries(grouped).map(([cat, list]) => (
+          <div key={cat}>
+            <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--fg-3)', textTransform: 'uppercase', marginBottom: 6, letterSpacing: '0.04em' }}>{cat}</div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+              {list.map(p => (
+                <div key={p.name} style={{ display: 'flex', alignItems: 'baseline', gap: 12, padding: '4px 0' }}>
+                  <span translate="no" style={{ fontFamily: 'var(--font-mono)', fontSize: 12, color: 'var(--fg-1)', minWidth: 280 }}>
+                    {p.name}
+                  </span>
+                  <span className="t-xs" style={{ color: 'var(--fg-3)', flex: 1 }}>
+                    {p.collectors.join(', ')}
+                    {p.requires && <span style={{ marginLeft: 8, color: 'var(--warn-fg)' }}>· requer {p.requires}</span>}
+                  </span>
+                </div>
+              ))}
+            </div>
+          </div>
+        ))}
+      </div>
     </div>
   )
 }

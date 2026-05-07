@@ -113,26 +113,31 @@ Todo collector deve retornar o mesmo shape:
 |---------|-----------|-----:|--------|-----------------|
 | **Baseline** | tenantInfo | — (metadata) | ✅ | `Organization.Read.All` |
 | | licensing | 3 | ✅ | `Organization.Read.All` |
-| | users | 3 | ✅ | `User.Read.All` |
+| | users (+ inactiveUsers) | 3 | ✅ | `User.Read.All`, `AuditLog.Read.All` |
 | | usage | 2 | ✅ | `Reports.Read.All` |
+| | appsChannel | 2 | ✅ | `Reports.Read.All` |
 | **Entra ID** | mfa | 2 | ✅ (requer P1) | `UserAuthenticationMethod.Read.All` |
 | | conditionalAccess | 2 | ✅ (requer P1) | `Policy.Read.All` |
-| | privileged | 2 | ✅ | `RoleManagement.Read.Directory` |
+| | privileged (+ PIM) | 2 | ✅ | `RoleManagement.Read.Directory` |
 | | guests | 1 | ✅ | `User.Read.All` |
 | | riskyUsers | 2 | ✅ (requer P2) | `IdentityRiskyUser.Read.All` |
-| **SharePoint** | permissions | 3 | ✅ | `Sites.Read.All` |
+| **SharePoint** | permissions (+ OneDrive) | 3 | ✅ | `Sites.Read.All`, `SharePointTenantSettings.Read.All` |
 | | ownership | 3 | ✅ | `Sites.Read.All`, `User.Read.All` |
+| | oversharing | 3 | ✅ | `Sites.Read.All` |
 | | staleContent | 2 | ✅ | `Sites.Read.All` |
 | | files | 2 | ⚠️ stub | `Sites.Read.All`, `Files.Read.All` |
 | | storage | 2 | ⚠️ stub | `Sites.Read.All` |
-| **Governance** | sensitivityLabels | 3 | ✅ | `InformationProtectionPolicy.Read.All` |
-| | audit | 3 | ✅ | `AuditLog.Read.All` |
-| | dlp | 2 | ❌ fora do Graph | `—` (só PowerShell) |
-| | retention | 2 | ❌ fora do Graph | `—` (só PowerShell) |
+| **Governance** | sensitivityLabels | 6 | ✅ | `InformationProtectionPolicy.Read.All` |
+| | audit | 4 | ✅ | `AuditLog.Read.All` |
+| | dlp (+ Copilot workload) | 3 | ✅ | `DataLossPreventionPolicy.Read.All` |
+| | retentionPolicies | 2 | ✅ | `RecordsManagement.Read.All` |
+| | copilotExtensions | 1 | ✅ | `ExternalConnection.Read.All` |
 | **Email Security** | spf | 2 | ✅ (DNS) | sem Graph |
 | | dmarc | 2 | ✅ (DNS) | sem Graph |
 | | dkim | 2 | ✅ (DNS) | sem Graph |
 | **IA Readiness** | synthesis | — | ✅ (sem API) | nenhuma |
+
+**Lista canônica de permissões + manifest aplicável via Azure CLI:** [`azure/app-registration-permissions.json`](azure/app-registration-permissions.json) e [`azure/README.md`](azure/README.md).
 
 **Legenda:** ✅ completo · ⚠️ stub (retorna scores placeholder) · ❌ inviável via Graph
 

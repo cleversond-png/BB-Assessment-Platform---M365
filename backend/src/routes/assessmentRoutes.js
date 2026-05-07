@@ -16,6 +16,30 @@ const router = express.Router();
 // In-memory job tracker: tenantId → { status, domains, startedAt, completedAt?, error? }
 const jobs = new Map();
 
+// Mapa collector → permissão Graph. Quando um collector retorna unavailable,
+// inferimos qual permissão precisa ser adicionada à App Registration / consent.
+// Apenas collectors que dependem ÚNICA E EXCLUSIVAMENTE da permissão listada —
+// se o unavailable pode vir de outras razões (licença ausente, etc), não mapeamos.
+const PERMISSION_BY_COLLECTOR = {
+  oversharing:        'Sites.Read.All',
+  dlp:                'DataLossPreventionPolicy.Read.All',
+  retentionPolicies:  'RecordsManagement.Read.All',
+  copilotExtensions:  'ExternalConnection.Read.All',
+};
+
+function detectMissingPermissions(domainResults) {
+  const missing = new Set();
+  for (const domain of Object.values(domainResults)) {
+    const collectors = domain?.collectors || {};
+    for (const [name, c] of Object.entries(collectors)) {
+      if (c?.unavailable && PERMISSION_BY_COLLECTOR[name]) {
+        missing.add(PERMISSION_BY_COLLECTOR[name]);
+      }
+    }
+  }
+  return [...missing].sort();
+}
+
 function requireConsent(req, res, next) {
   const { tenantId } = req.body;
   if (!tenantId) return res.status(400).json({ error: 'tenantId is required' });
@@ -59,12 +83,16 @@ async function runAssessmentBackground(tenantId) {
       ? Math.round((scores.reduce((a, b) => a + b, 0) / scores.length) * 10) / 10
       : null;
 
+    const missingPermissions = detectMissingPermissions(domainResults);
+
     const result = {
       tenantId,
       tenantName: domainResults.baseline?.collectors?.tenantInfo?.displayName || null,
       entraIdTier: domainResults.baseline?.entraIdTier || null,
       assessedAt: new Date().toISOString(),
       overallScore,
+      missingPermissions,
+      reconsentNeeded: missingPermissions.length > 0,
       domains: domainResults,
       recommendations: generateRecommendations(domainResults),
     };

@@ -10,7 +10,7 @@ O app cobre corretamente os 6 pré-requisitos mais críticos (módulo `iaReadine
 
 ---
 
-## Lacuna 1 — Oversharing Interno: "Everyone" e "Everyone Except External Users"
+## Lacuna 1 — Oversharing Interno: "Everyone" e "Everyone Except External Users" ✅
 
 ### O que é
 Além de links anônimos (que o app já detecta), existe outra forma crítica de oversharing: sites, pastas e arquivos com permissões concedidas para os grupos especiais `Everyone` ou `Everyone except external users` do Azure AD. Qualquer usuário do tenant, incluindo contas de serviço, aplicações e usuários recém-adicionados, tem acesso automático a esse conteúdo.
@@ -41,7 +41,7 @@ A API do Microsoft Graph permite verificar quais sites têm permissões atribuí
 
 ---
 
-## Lacuna 2 — DLP com Workload Copilot Explícito
+## Lacuna 2 — DLP com Workload Copilot Explícito ✅
 
 ### O que é
 O app já verifica se existem políticas DLP no tenant (`dlpCollector`), mas não verifica se alguma dessas políticas cobre especificamente o **Copilot for Microsoft 365** como workload protegido. Desde outubro de 2024, a Microsoft adicionou suporte explícito para DLP aplicado às interações do Copilot — incluindo restrição de quais tipos de conteúdo o Copilot pode processar e quais prompts são bloqueados.
@@ -76,7 +76,7 @@ A API beta do Graph expõe as políticas DLP com o campo `workload` indicando os
 
 ---
 
-## Lacuna 3 — Contas Internas Inativas (Usuários Desligados)
+## Lacuna 3 — Contas Internas Inativas (Usuários Desligados) ✅
 
 ### O que é
 O app detecta **guests inativos** (externos), mas não detecta **usuários internos** cujas contas estão habilitadas mas sem nenhum sinal de login nos últimos 90 dias. Essas são tipicamente contas de ex-funcionários, contas de serviço abandonadas ou contas de teste que nunca foram desativadas.
@@ -103,7 +103,7 @@ O Microsoft Graph fornece o campo `signInActivity.lastSignInDateTime` no endpoin
 
 ---
 
-## Lacuna 4 — Retenção Específica para Teams e Exchange
+## Lacuna 4 — Retenção Específica para Teams e Exchange ✅
 
 ### O que é
 O app verifica a existência de retention labels no Purview (`retentionCollector`), mas não verifica se existem **políticas de retenção aplicadas especificamente a Teams (chats, canais) e Exchange (caixas de entrada)**. Retention labels são diferentes de retention policies — uma label é aplicada manualmente ou por auto-labeling em documentos; uma policy é aplicada automaticamente a workloads inteiros.
@@ -128,7 +128,7 @@ Verificar se existem políticas com `workload` cobrindo `Teams` e `Exchange`.
 
 ---
 
-## Lacuna 5 — Canal de Atualização do Microsoft 365 Apps
+## Lacuna 5 — Canal de Atualização do Microsoft 365 Apps ✅
 
 ### O que é
 O Copilot for Microsoft 365 requer que os aplicativos Office instalados nos dispositivos dos usuários estejam no **Current Channel** ou **Monthly Enterprise Channel** — não é possível usar o Copilot com versões em Semi-Annual Channel (o canal mais atrasado, comum em ambientes corporativos conservadores). Versões desatualizadas do Office simplesmente não mostram o botão do Copilot.
@@ -162,7 +162,7 @@ Esse relatório indica quais versões do Office estão sendo usadas pelos usuár
 
 ---
 
-## Lacuna 6 — OneDrive Sharing Settings (Separado do SharePoint Global)
+## Lacuna 6 — OneDrive Sharing Settings (Separado do SharePoint Global) ✅
 
 ### O que é
 O app verifica as configurações de sharing do SharePoint tenant-level (`permissionsCollector`), mas as configurações do **OneDrive for Business** podem ser configuradas de forma independente no Admin Center — e frequentemente são mais permissivas que o SharePoint. Um tenant pode ter SharePoint restrito a "Existing guests" mas OneDrive configurado para "Anyone" (links anônimos).
@@ -190,7 +190,7 @@ O campo `oneDriveForBusinessSharingCapability` é distinto de `sharingCapability
 
 ---
 
-## Lacuna 7 — Privileged Identity Management (PIM)
+## Lacuna 7 — Privileged Identity Management (PIM) ✅
 
 ### O que é
 O app detecta quantos Global Administrators existem e se há guests com roles admin (`privilegedCollector`). Porém, não verifica se o tenant usa **Privileged Identity Management (PIM)** — o mecanismo da Microsoft para que roles privilegiadas sejam *just-in-time* (JIT): o administrador solicita elevação temporária, usa a permissão por um período limitado, e ela expira automaticamente.
@@ -223,7 +223,7 @@ Se existem role eligibility schedules para Global Admin, o PIM está configurado
 
 ---
 
-## Lacuna 8 — Plugins e Conectores do Copilot (Extensibility Risk)
+## Lacuna 8 — Plugins e Conectores do Copilot (Extensibility Risk) ✅
 
 ### O que é
 O Copilot for Microsoft 365 suporta extensões via **Graph Connectors**, **Teams Message Extensions** e **Declarative Agents** (plugins de terceiros). Cada plugin instalado expande o que o Copilot pode acessar — incluindo sistemas externos como CRM, ERP, ticketing — criando novas superfícies de ataque e riscos de exfiltração para dados fora do M365.
@@ -291,19 +291,11 @@ O resultado salvo no disco tem estrutura `result.domains.iaReadiness`, não `res
 
 ---
 
-## Permissões Adicionais Necessárias (App Registration)
+## Permissões Adicionais Necessárias (App Registration) ✅
 
-Para cobrir as lacunas acima, as seguintes permissões precisam ser adicionadas à App Registration multi-tenant:
+Lista canônica versionada agora vive em [`azure/app-registration-permissions.json`](azure/app-registration-permissions.json) com aplicação automatizada via [`azure/update-permissions.sh`](azure/update-permissions.sh). Permissões novas adicionadas para cobrir as lacunas: `Sites.Read.All`, `AuditLog.Read.All`, `RecordsManagement.Read.All`, `RoleManagement.Read.Directory`, `ExternalConnection.Read.All`, `DataLossPreventionPolicy.Read.All`.
 
-| Permissão | Tipo | Para qual lacuna |
-|---|---|---|
-| `Sites.Read.All` | Application | Lacuna 1 (Oversharing Everyone) |
-| `AuditLog.Read.All` | Application | Lacuna 3 (Usuários inativos internos) |
-| `RecordsManagement.Read.All` | Application | Lacuna 4 (Retention Policies) — já pode estar via beta |
-| `RoleManagement.Read.Directory` | Application | Lacuna 7 (PIM) |
-| `ExternalConnection.Read.All` | Application | Lacuna 8 (Plugins Copilot) |
-
-As permissões `Reports.Read.All` (Lacuna 5) e `SharePointTenantSettings.Read.All` (Lacuna 6) já estão na App Registration atual.
+Após aplicar o manifest no Azure, **todos os tenants já consentidos precisam fazer re-consent** — a tela `/consent` mostra a lista completa de permissões e o overview de cada tenant exibe banner amarelo "Re-consent necessário" quando há permissão ausente.
 
 ---
 
