@@ -43,3 +43,9 @@ A solução deve operar com **uma única App Registration multi-tenant**, onde c
 - Coleta completa sem erros críticos
 - Relatório compreensível para executivos
 - Base pronta para escalar
+
+## Fluxo de Trabalho Obrigatório
+- O ambiente de produção está publicado no Azure via CI/CD a partir do GitHub
+- **Após toda modificação de arquivo, fazer `git push` imediatamente**
+- Não executar o servidor local (npm start, node server.js, etc.)
+- Trabalhar apenas nos arquivos do repositório e commitar + push para deployar
