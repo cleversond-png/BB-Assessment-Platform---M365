@@ -3,17 +3,19 @@ const { collectOwnership } = require('./ownershipCollector');
 const { collectStaleContent } = require('./staleContentCollector');
 const { collectFiles } = require('./filesCollector');
 const { collectStorage } = require('./storageCollector');
+const { collectOversharingEveryone } = require('./oversharingEveryoneCollector');
 const logger = require('../../logger');
 
 // Weights must sum to a fixed total so unavailable collectors pull the domain score down.
 const COLLECTOR_WEIGHTS = {
   permissions: 3, // external sharing risk is highest impact
   ownership: 3,   // governance foundation — sites without active owners
+  oversharing: 3, // internal oversharing via Everyone groups — Copilot amplification risk
   staleContent: 2, // data hygiene — inactive sites
   files: 2,        // large files, duplicates, stale files
   storage: 2,      // per-site concentration and capacity
 };
-const TOTAL_WEIGHT = Object.values(COLLECTOR_WEIGHTS).reduce((a, b) => a + b, 0); // 12
+const TOTAL_WEIGHT = Object.values(COLLECTOR_WEIGHTS).reduce((a, b) => a + b, 0); // 15
 
 async function runSharePointAssessment(tenantId) {
   logger.info({ event: 'assessment_start', domain: 'sharePoint', tenantId });
@@ -21,6 +23,7 @@ async function runSharePointAssessment(tenantId) {
   const collectors = [
     { name: 'permissions', fn: () => collectPermissions(tenantId) },
     { name: 'ownership', fn: () => collectOwnership(tenantId) },
+    { name: 'oversharing', fn: () => collectOversharingEveryone(tenantId) },
     { name: 'staleContent', fn: () => collectStaleContent(tenantId) },
     { name: 'files', fn: () => collectFiles(tenantId) },
     { name: 'storage', fn: () => collectStorage(tenantId) },

@@ -1,0 +1,1325 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Eval Review</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@500;600&family=Lora:wght@400;500&display=swap" rel="stylesheet">
+  <script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js" integrity="sha384-EnyY0/GSHQGSxSgMwaIPzSESbqoOLSexfnSMN2AP+39Ckmn92stwABZynq1JyzdT" crossorigin="anonymous"></script>
+  <style>
+    :root {
+      --bg: #faf9f5;
+      --surface: #ffffff;
+      --border: #e8e6dc;
+      --text: #141413;
+      --text-muted: #b0aea5;
+      --accent: #d97757;
+      --accent-hover: #c4613f;
+      --green: #788c5d;
+      --green-bg: #eef2e8;
+      --red: #c44;
+      --red-bg: #fceaea;
+      --header-bg: #141413;
+      --header-text: #faf9f5;
+      --radius: 6px;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Lora', Georgia, serif;
+      background: var(--bg);
+      color: var(--text);
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* ---- Header ---- */
+    .header {
+      background: var(--header-bg);
+      color: var(--header-text);
+      padding: 1rem 2rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-shrink: 0;
+    }
+    .header h1 {
+      font-family: 'Poppins', sans-serif;
+      font-size: 1.25rem;
+      font-weight: 600;
+    }
+    .header .instructions {
+      font-size: 0.8rem;
+      opacity: 0.7;
+      margin-top: 0.25rem;
+    }
+    .header .progress {
+      font-size: 0.875rem;
+      opacity: 0.8;
+      text-align: right;
+    }
+
+    /* ---- Main content ---- */
+    .main {
+      flex: 1;
+      overflow-y: auto;
+      padding: 1.5rem 2rem;
+      display: flex;
+      flex-direction: column;
+      gap: 1.25rem;
+    }
+
+    /* ---- Sections ---- */
+    .section {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      flex-shrink: 0;
+    }
+    .section-header {
+      font-family: 'Poppins', sans-serif;
+      padding: 0.75rem 1rem;
+      font-size: 0.75rem;
+      font-weight: 500;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: var(--text-muted);
+      border-bottom: 1px solid var(--border);
+      background: var(--bg);
+    }
+    .section-body {
+      padding: 1rem;
+    }
+
+    /* ---- Config badge ---- */
+    .config-badge {
+      display: inline-block;
+      padding: 0.2rem 0.625rem;
+      border-radius: 9999px;
+      font-family: 'Poppins', sans-serif;
+      font-size: 0.6875rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.03em;
+      margin-left: 0.75rem;
+      vertical-align: middle;
+    }
+    .config-badge.config-primary {
+      background: rgba(33, 150, 243, 0.12);
+      color: #1976d2;
+    }
+    .config-badge.config-baseline {
+      background: rgba(255, 193, 7, 0.15);
+      color: #f57f17;
+    }
+
+    /* ---- Prompt ---- */
+    .prompt-text {
+      white-space: pre-wrap;
+      font-size: 0.9375rem;
+      line-height: 1.6;
+    }
+
+    /* ---- Outputs ---- */
+    .output-file {
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      overflow: hidden;
+    }
+    .output-file + .output-file {
+      margin-top: 1rem;
+    }
+    .output-file-header {
+      padding: 0.5rem 0.75rem;
+      font-size: 0.8rem;
+      font-weight: 600;
+      color: var(--text-muted);
+      background: var(--bg);
+      border-bottom: 1px solid var(--border);
+      font-family: 'SF Mono', SFMono-Regular, Consolas, 'Liberation Mono', Menlo, monospace;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .output-file-header .dl-btn {
+      font-size: 0.7rem;
+      color: var(--accent);
+      text-decoration: none;
+      cursor: pointer;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      font-weight: 500;
+      opacity: 0.8;
+    }
+    .output-file-header .dl-btn:hover {
+      opacity: 1;
+      text-decoration: underline;
+    }
+    .output-file-content {
+      padding: 0.75rem;
+      overflow-x: auto;
+    }
+    .output-file-content pre {
+      font-size: 0.8125rem;
+      line-height: 1.5;
+      white-space: pre-wrap;
+      word-break: break-word;
+      font-family: 'SF Mono', SFMono-Regular, Consolas, 'Liberation Mono', Menlo, monospace;
+    }
+    .output-file-content img {
+      max-width: 100%;
+      height: auto;
+      border-radius: 4px;
+    }
+    .output-file-content iframe {
+      width: 100%;
+      height: 600px;
+      border: none;
+    }
+    .output-file-content table {
+      border-collapse: collapse;
+      font-size: 0.8125rem;
+      width: 100%;
+    }
+    .output-file-content table td,
+    .output-file-content table th {
+      border: 1px solid var(--border);
+      padding: 0.375rem 0.5rem;
+      text-align: left;
+    }
+    .output-file-content table th {
+      background: var(--bg);
+      font-weight: 600;
+    }
+    .output-file-content .download-link {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      padding: 0.5rem 1rem;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      color: var(--accent);
+      text-decoration: none;
+      font-size: 0.875rem;
+      cursor: pointer;
+    }
+    .output-file-content .download-link:hover {
+      background: var(--border);
+    }
+    .empty-state {
+      color: var(--text-muted);
+      font-style: italic;
+      padding: 2rem;
+      text-align: center;
+    }
+
+    /* ---- Feedback ---- */
+    .prev-feedback {
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      padding: 0.625rem 0.75rem;
+      margin-top: 0.75rem;
+      font-size: 0.8125rem;
+      color: var(--text-muted);
+      line-height: 1.5;
+    }
+    .prev-feedback-label {
+      font-size: 0.7rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      margin-bottom: 0.25rem;
+      color: var(--text-muted);
+    }
+    .feedback-textarea {
+      width: 100%;
+      min-height: 100px;
+      padding: 0.75rem;
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      font-family: inherit;
+      font-size: 0.9375rem;
+      line-height: 1.5;
+      resize: vertical;
+      color: var(--text);
+    }
+    .feedback-textarea:focus {
+      outline: none;
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+    }
+    .feedback-status {
+      font-size: 0.75rem;
+      color: var(--text-muted);
+      margin-top: 0.5rem;
+      min-height: 1.1em;
+    }
+
+    /* ---- Grades (collapsible) ---- */
+    .grades-toggle {
+      display: flex;
+      align-items: center;
+      cursor: pointer;
+      user-select: none;
+    }
+    .grades-toggle:hover {
+      color: var(--accent);
+    }
+    .grades-toggle .arrow {
+      margin-right: 0.5rem;
+      transition: transform 0.15s;
+      font-size: 0.75rem;
+    }
+    .grades-toggle .arrow.open {
+      transform: rotate(90deg);
+    }
+    .grades-content {
+      display: none;
+      margin-top: 0.75rem;
+    }
+    .grades-content.open {
+      display: block;
+    }
+    .grades-summary {
+      font-size: 0.875rem;
+      margin-bottom: 0.75rem;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+    .grade-badge {
+      display: inline-block;
+      padding: 0.125rem 0.5rem;
+      border-radius: 9999px;
+      font-size: 0.75rem;
+      font-weight: 600;
+    }
+    .grade-pass { background: var(--green-bg); color: var(--green); }
+    .grade-fail { background: var(--red-bg); color: var(--red); }
+    .assertion-list {
+      list-style: none;
+    }
+    .assertion-item {
+      padding: 0.625rem 0;
+      border-bottom: 1px solid var(--border);
+      font-size: 0.8125rem;
+    }
+    .assertion-item:last-child { border-bottom: none; }
+    .assertion-status {
+      font-weight: 600;
+      margin-right: 0.5rem;
+    }
+    .assertion-status.pass { color: var(--green); }
+    .assertion-status.fail { color: var(--red); }
+    .assertion-evidence {
+      color: var(--text-muted);
+      font-size: 0.75rem;
+      margin-top: 0.25rem;
+      padding-left: 1.5rem;
+    }
+
+    /* ---- View tabs ---- */
+    .view-tabs {
+      display: flex;
+      gap: 0;
+      padding: 0 2rem;
+      background: var(--bg);
+      border-bottom: 1px solid var(--border);
+      flex-shrink: 0;
+    }
+    .view-tab {
+      font-family: 'Poppins', sans-serif;
+      padding: 0.625rem 1.25rem;
+      font-size: 0.8125rem;
+      font-weight: 500;
+      cursor: pointer;
+      border: none;
+      background: none;
+      color: var(--text-muted);
+      border-bottom: 2px solid transparent;
+      transition: all 0.15s;
+    }
+    .view-tab:hover { color: var(--text); }
+    .view-tab.active {
+      color: var(--accent);
+      border-bottom-color: var(--accent);
+    }
+    .view-panel { display: none; }
+    .view-panel.active { display: flex; flex-direction: column; flex: 1; overflow: hidden; }
+
+    /* ---- Benchmark view ---- */
+    .benchmark-view {
+      padding: 1.5rem 2rem;
+      overflow-y: auto;
+      flex: 1;
+    }
+    .benchmark-table {
+      border-collapse: collapse;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      font-size: 0.8125rem;
+      width: 100%;
+      margin-bottom: 1.5rem;
+    }
+    .benchmark-table th, .benchmark-table td {
+      padding: 0.625rem 0.75rem;
+      text-align: left;
+      border: 1px solid var(--border);
+    }
+    .benchmark-table th {
+      font-family: 'Poppins', sans-serif;
+      background: var(--header-bg);
+      color: var(--header-text);
+      font-weight: 500;
+      font-size: 0.75rem;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+    .benchmark-table tr:hover { background: var(--bg); }
+    .benchmark-table tr.benchmark-row-with { background: rgba(33, 150, 243, 0.06); }
+    .benchmark-table tr.benchmark-row-without { background: rgba(255, 193, 7, 0.06); }
+    .benchmark-table tr.benchmark-row-with:hover { background: rgba(33, 150, 243, 0.12); }
+    .benchmark-table tr.benchmark-row-without:hover { background: rgba(255, 193, 7, 0.12); }
+    .benchmark-table tr.benchmark-row-avg { font-weight: 600; border-top: 2px solid var(--border); }
+    .benchmark-table tr.benchmark-row-avg.benchmark-row-with { background: rgba(33, 150, 243, 0.12); }
+    .benchmark-table tr.benchmark-row-avg.benchmark-row-without { background: rgba(255, 193, 7, 0.12); }
+    .benchmark-delta-positive { color: var(--green); font-weight: 600; }
+    .benchmark-delta-negative { color: var(--red); font-weight: 600; }
+    .benchmark-notes {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 1rem;
+    }
+    .benchmark-notes h3 {
+      font-family: 'Poppins', sans-serif;
+      font-size: 0.875rem;
+      margin-bottom: 0.75rem;
+    }
+    .benchmark-notes ul {
+      list-style: disc;
+      padding-left: 1.25rem;
+    }
+    .benchmark-notes li {
+      font-size: 0.8125rem;
+      line-height: 1.6;
+      margin-bottom: 0.375rem;
+    }
+    .benchmark-empty {
+      color: var(--text-muted);
+      font-style: italic;
+      text-align: center;
+      padding: 3rem;
+    }
+
+    /* ---- Navigation ---- */
+    .nav {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 1rem 2rem;
+      border-top: 1px solid var(--border);
+      background: var(--surface);
+      flex-shrink: 0;
+    }
+    .nav-btn {
+      font-family: 'Poppins', sans-serif;
+      padding: 0.5rem 1.25rem;
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      background: var(--surface);
+      cursor: pointer;
+      font-size: 0.875rem;
+      font-weight: 500;
+      color: var(--text);
+      transition: all 0.15s;
+    }
+    .nav-btn:hover:not(:disabled) {
+      background: var(--bg);
+      border-color: var(--text-muted);
+    }
+    .nav-btn:disabled {
+      opacity: 0.4;
+      cursor: not-allowed;
+    }
+    .done-btn {
+      font-family: 'Poppins', sans-serif;
+      padding: 0.5rem 1.5rem;
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      background: var(--surface);
+      color: var(--text);
+      cursor: pointer;
+      font-size: 0.875rem;
+      font-weight: 500;
+      transition: all 0.15s;
+    }
+    .done-btn:hover {
+      background: var(--bg);
+      border-color: var(--text-muted);
+    }
+    .done-btn.ready {
+      border: none;
+      background: var(--accent);
+      color: white;
+      font-weight: 600;
+    }
+    .done-btn.ready:hover {
+      background: var(--accent-hover);
+    }
+    /* ---- Done overlay ---- */
+    .done-overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.5);
+      z-index: 100;
+      justify-content: center;
+      align-items: center;
+    }
+    .done-overlay.visible {
+      display: flex;
+    }
+    .done-card {
+      background: var(--surface);
+      border-radius: 12px;
+      padding: 2rem 3rem;
+      text-align: center;
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+      max-width: 500px;
+    }
+    .done-card h2 {
+      font-size: 1.5rem;
+      margin-bottom: 0.5rem;
+    }
+    .done-card p {
+      color: var(--text-muted);
+      margin-bottom: 1.5rem;
+      line-height: 1.5;
+    }
+    .done-card .btn-row {
+      display: flex;
+      gap: 0.5rem;
+      justify-content: center;
+    }
+    .done-card button {
+      padding: 0.5rem 1.25rem;
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      background: var(--surface);
+      cursor: pointer;
+      font-size: 0.875rem;
+    }
+    .done-card button:hover {
+      background: var(--bg);
+    }
+    /* ---- Toast ---- */
+    .toast {
+      position: fixed;
+      bottom: 5rem;
+      left: 50%;
+      transform: translateX(-50%);
+      background: var(--header-bg);
+      color: var(--header-text);
+      padding: 0.625rem 1.25rem;
+      border-radius: var(--radius);
+      font-size: 0.875rem;
+      opacity: 0;
+      transition: opacity 0.3s;
+      pointer-events: none;
+      z-index: 200;
+    }
+    .toast.visible {
+      opacity: 1;
+    }
+  </style>
+</head>
+<body>
+  <div id="app" style="height:100vh; display:flex; flex-direction:column;">
+    <div class="header">
+      <div>
+        <h1>Eval Review: <span id="skill-name"></span></h1>
+        <div class="instructions">Review each output and leave feedback below. Navigate with arrow keys or buttons. When done, copy feedback and paste into Claude Code.</div>
+      </div>
+      <div class="progress" id="progress"></div>
+    </div>
+
+    <!-- View tabs (only shown when benchmark data exists) -->
+    <div class="view-tabs" id="view-tabs" style="display:none;">
+      <button class="view-tab active" onclick="switchView('outputs')">Outputs</button>
+      <button class="view-tab" onclick="switchView('benchmark')">Benchmark</button>
+    </div>
+
+    <!-- Outputs panel (qualitative review) -->
+    <div class="view-panel active" id="panel-outputs">
+    <div class="main">
+      <!-- Prompt -->
+      <div class="section">
+        <div class="section-header">Prompt <span class="config-badge" id="config-badge" style="display:none;"></span></div>
+        <div class="section-body">
+          <div class="prompt-text" id="prompt-text"></div>
+        </div>
+      </div>
+
+      <!-- Outputs -->
+      <div class="section">
+        <div class="section-header">Output</div>
+        <div class="section-body" id="outputs-body">
+          <div class="empty-state">No output files found</div>
+        </div>
+      </div>
+
+      <!-- Previous Output (collapsible) -->
+      <div class="section" id="prev-outputs-section" style="display:none;">
+        <div class="section-header">
+          <div class="grades-toggle" onclick="togglePrevOutputs()">
+            <span class="arrow" id="prev-outputs-arrow">&#9654;</span>
+            Previous Output
+          </div>
+        </div>
+        <div class="grades-content" id="prev-outputs-content"></div>
+      </div>
+
+      <!-- Grades (collapsible) -->
+      <div class="section" id="grades-section" style="display:none;">
+        <div class="section-header">
+          <div class="grades-toggle" onclick="toggleGrades()">
+            <span class="arrow" id="grades-arrow">&#9654;</span>
+            Formal Grades
+          </div>
+        </div>
+        <div class="grades-content" id="grades-content"></div>
+      </div>
+
+      <!-- Feedback -->
+      <div class="section">
+        <div class="section-header">Your Feedback</div>
+        <div class="section-body">
+          <textarea
+            class="feedback-textarea"
+            id="feedback"
+            placeholder="What do you think of this output? Any issues, suggestions, or things that look great?"
+          ></textarea>
+          <div class="feedback-status" id="feedback-status"></div>
+          <div class="prev-feedback" id="prev-feedback" style="display:none;">
+            <div class="prev-feedback-label">Previous feedback</div>
+            <div id="prev-feedback-text"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="nav" id="outputs-nav">
+      <button class="nav-btn" id="prev-btn" onclick="navigate(-1)">&#8592; Previous</button>
+      <button class="done-btn" id="done-btn" onclick="showDoneDialog()">Submit All Reviews</button>
+      <button class="nav-btn" id="next-btn" onclick="navigate(1)">Next &#8594;</button>
+    </div>
+    </div><!-- end panel-outputs -->
+
+    <!-- Benchmark panel (quantitative stats) -->
+    <div class="view-panel" id="panel-benchmark">
+      <div class="benchmark-view" id="benchmark-content">
+        <div class="benchmark-empty">No benchmark data available. Run a benchmark to see quantitative results here.</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Done overlay -->
+  <div class="done-overlay" id="done-overlay">
+    <div class="done-card">
+      <h2>Review Complete</h2>
+      <p>Your feedback has been saved. Go back to your Claude Code session and tell Claude you're done reviewing.</p>
+      <div class="btn-row">
+        <button onclick="closeDoneDialog()">OK</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast -->
+  <div class="toast" id="toast"></div>
+
+  <script>
+    // ---- Embedded data (injected by generate_review.py) ----
+    const EMBEDDED_DATA = {"skill_name": "EspecialistaCopilot", "runs": [{"id": "eval-1-tenant9c8c-with_skill", "prompt": "Acabei o assessment do cliente. Quero que voc\u00ea analise o resultado e me diga se ele est\u00e1 pronto para o Copilot. O arquivo de resultado mais recente est\u00e1 em /Users/cleversondrobnievski/Documents/Claude/Projects/BB Assessment Platform - M365/backend/data/results/latest_9c8c533a-fb11-4146-a3cc-c05c399629f6.json", "eval_id": 1, "outputs": [{"name": "laudo.md", "type": "text", "content": "# Laudo de Prontid\u00e3o para Copilot \u2014 9c8c533a-fb11-4146-a3cc-c05c399629f6\nAssessment realizado em: 06 de maio de 2026, \u00e0s 15h16 (UTC)\n\n## Veredicto\n\nEste tenant N\u00c3O est\u00e1 pronto para receber o Copilot for Microsoft 365.\n\nO assessment n\u00e3o conseguiu coletar dados de configura\u00e7\u00e3o real do tenant porque nenhum token de autentica\u00e7\u00e3o v\u00e1lido estava dispon\u00edvel no momento da execu\u00e7\u00e3o \u2014 todos os collectors falharam com o erro \"No valid token for tenant\". Isso significa que o assessment n\u00e3o p\u00f4de verificar nenhum dos pr\u00e9-requisitos t\u00e9cnicos do Copilot. Como resultado, 0 de 6 pr\u00e9-requisitos foram atendidos, o score geral foi calculado como 0/5.0 e o n\u00edvel de prontid\u00e3o classificado automaticamente como \"N\u00e3o Pronto\". Al\u00e9m da aus\u00eancia de dados, mesmo que o token fosse v\u00e1lido, os dois bloqueadores cr\u00edticos identificados pelo motor de scoring \u2014 links an\u00f4nimos e cobertura de MFA \u2014 precisariam ser verificados e remediados antes de qualquer avan\u00e7o com o Copilot.\n\n## Score Geral: 0/5.0 \u2014 N\u00e3o Pronto\n\n| Dom\u00ednio | Score | Situa\u00e7\u00e3o |\n|---|---|---|\n| Identidade (Entra ID) | 0/5.0 | \ud83d\udd34 Cr\u00edtico |\n| Dados (SharePoint) | 0/5.0 | \ud83d\udd34 Cr\u00edtico |\n| Governan\u00e7a (Purview) | 0/5.0 | \ud83d\udd34 Cr\u00edtico |\n| Seguran\u00e7a de Email | n\u00e3o dispon\u00edvel | \ud83d\udd34 Cr\u00edtico |\n| Ado\u00e7\u00e3o M365 (Baseline) | n\u00e3o dispon\u00edvel | \ud83d\udd34 Cr\u00edtico |\n| Prontid\u00e3o para IA | 0/5.0 | \ud83d\udd34 Cr\u00edtico |\n\n## Pr\u00e9-requisitos do Copilot (Checklist)\n\n- \u274c Links an\u00f4nimos desabilitados (peso: 30% | impacto: cr\u00edtico)\n- \u274c Cobertura MFA \u2265 80% (peso: 25% | impacto: cr\u00edtico)\n- \u274c Conditional Access ativo (peso: 15% | impacto: alto)\n- \u274c Sensitivity Labels configurados (peso: 15% | impacto: alto)\n- \u274c Audit Log com eventos recentes (peso: 10% | impacto: alto)\n- \u274c Conte\u00fado atualizado (sites inativos < 30%) (peso: 5% | impacto: m\u00e9dio)\n\nPassed: 0/6\n\n> **Importante:** todos os checks marcados como \u274c falharam porque os collectors n\u00e3o conseguiram autenticar no tenant (token inv\u00e1lido), e n\u00e3o necessariamente porque as configura\u00e7\u00f5es estejam incorretas. A falha de autentica\u00e7\u00e3o impede a verifica\u00e7\u00e3o real \u2014 o resultado deve ser interpretado como \"n\u00e3o verificado / presumido n\u00e3o conforme\" e n\u00e3o como confirma\u00e7\u00e3o de que todas as configura\u00e7\u00f5es est\u00e3o erradas.\n\n## Bloqueadores para o Copilot\n\n**CR\u00cdTICO: Links an\u00f4nimos desabilitados**\nO Copilot indexa e referencia conte\u00fado do SharePoint e OneDrive durante as intera\u00e7\u00f5es. Se links an\u00f4nimos estiverem habilitados, qualquer arquivo compartilhado publicamente pode ser referenciado e exposto pelo Copilot a usu\u00e1rios que n\u00e3o deveriam ter acesso \u2014 criando risco imediato de vazamento de dados sens\u00edveis e viola\u00e7\u00e3o de conformidade. Este \u00e9 o bloqueador de maior peso (30%) no crit\u00e9rio de prontid\u00e3o.\n\n**CR\u00cdTICO: Cobertura MFA \u2265 80%**\nO Copilot opera com os privil\u00e9gios do usu\u00e1rio autenticado \u2014 se uma conta for comprometida por aus\u00eancia de MFA, o atacante passa a ter acesso completo ao Copilot e pode usar a IA para exfiltrar dados de forma acelerada e dif\u00edcil de detectar. Cobertura de MFA abaixo de 80% significa que uma parcela significativa das contas est\u00e1 vulner\u00e1vel a credential stuffing e phishing. Este check n\u00e3o p\u00f4de ser verificado pela falha de autentica\u00e7\u00e3o, mas \u00e9 considerado bloqueador por aus\u00eancia de evid\u00eancia contr\u00e1ria.\n\n**ALTO: Conditional Access ativo**\nSem pol\u00edticas de Conditional Access, n\u00e3o h\u00e1 controle adaptativo de acesso \u2014 qualquer dispositivo, de qualquer localiza\u00e7\u00e3o, pode acessar o Copilot sem restri\u00e7\u00f5es. Isso aumenta a superf\u00edcie de ataque e dificulta o controle de sess\u00f5es suspeitas que poderiam usar o Copilot maliciosamente.\n\n**ALTO: Sensitivity Labels configurados**\nO Copilot usa Sensitivity Labels para entender a classifica\u00e7\u00e3o dos documentos com os quais interage. Sem labels configurados, o modelo n\u00e3o tem contexto sobre quais dados s\u00e3o confidenciais, reservados ou p\u00fablicos \u2014 aumentando o risco de o Copilot sumarizar ou referenciar dados sens\u00edveis em contextos inadequados.\n\n**ALTO: Audit Log com eventos recentes**\nSem Audit Log ativo, n\u00e3o h\u00e1 rastreabilidade das a\u00e7\u00f5es do Copilot e dos usu\u00e1rios sobre os dados do tenant. Em caso de incidente (acesso indevido, vazamento via prompt), a aus\u00eancia de logs compromete a investiga\u00e7\u00e3o forense e a resposta a incidentes \u2014 al\u00e9m de ser requisito regulat\u00f3rio em muitos contextos.\n\n## An\u00e1lise por Dom\u00ednio\n\n### Identidade (Entra ID)\n\n**Dados n\u00e3o dispon\u00edveis \u2014 falha de autentica\u00e7\u00e3o.**\n\nTodos os collectors do dom\u00ednio de identidade falharam com o erro \"No valid token for tenant 9c8c533a-fb11-4146-a3cc-c05c399629f6\". Isso impede a verifica\u00e7\u00e3o de:\n\n- **MFA:** cobertura percentual de usu\u00e1rios com MFA habilitado (limiar m\u00ednimo para Copilot: 80%)\n- **Conditional Access:** n\u00famero de pol\u00edticas ativas, se MFA est\u00e1 sendo for\u00e7ado por CA, e se o acesso legacy est\u00e1 bloqueado\n- **Contas privilegiadas:** quantidade de Global Admins, admins sem MFA, e convidados com permiss\u00f5es elevadas\n- **Convidados inativos:** usu\u00e1rios externos que podem representar risco de acesso residual\n- **Usu\u00e1rios arriscados:** contas sinalizadas pelo Identity Protection como comprometidas ou em risco\n\nCausa t\u00e9cnica prov\u00e1vel: o consentimento administrativo do tenant n\u00e3o foi concedido para a App Registration do Assessment Platform, ou o token expirou e n\u00e3o foi renovado antes da execu\u00e7\u00e3o. Isso precisa ser corrigido para que uma nova coleta seja realizada com dados reais.\n\n### Dados (SharePoint)\n\n**Dados n\u00e3o dispon\u00edveis \u2014 falha de autentica\u00e7\u00e3o.**\n\nTodos os collectors do dom\u00ednio de dados (SharePoint/OneDrive) falharam pelo mesmo motivo de token inv\u00e1lido. N\u00e3o foi poss\u00edvel verificar:\n\n- **Permiss\u00f5es:** se links an\u00f4nimos est\u00e3o habilitados na configura\u00e7\u00e3o do tenant (sharingCapability), e quantos links an\u00f4nimos ativos existem\n- **Ownership:** sites sem owner v\u00e1lido ou com owner desativado (risco de dados \u00f3rf\u00e3os)\n- **Conte\u00fado desatualizado:** percentual de sites sem atividade nos \u00faltimos 90 dias\n- **Storage:** utiliza\u00e7\u00e3o de armazenamento e distribui\u00e7\u00e3o por site\n- **Arquivos sens\u00edveis:** tipos de arquivo presentes que podem conter dados regulados\n\nO bloqueador \"Links an\u00f4nimos desabilitados\" permanece como falha presumida \u2014 sem evid\u00eancia de que est\u00e3o desabilitados, o sistema trata como risco ativo.\n\n### Governan\u00e7a (Purview)\n\n**Dados n\u00e3o dispon\u00edveis \u2014 falha de autentica\u00e7\u00e3o.**\n\nOs collectors de governan\u00e7a (Sensitivity Labels e Audit Log) falharam por token inv\u00e1lido. N\u00e3o foi poss\u00edvel verificar:\n\n- **Sensitivity Labels:** exist\u00eancia e quantidade de r\u00f3tulos de sensibilidade, presen\u00e7a de sublabels e configura\u00e7\u00e3o de auto-labeling\n- **DLP (Data Loss Prevention):** n\u00famero de pol\u00edticas, pol\u00edticas ativas, escopos cobertos\n- **Audit Log:** presen\u00e7a de eventos recentes (\u00faltimas 72h), indicativo de que o log est\u00e1 ativo e funcional\n- **Reten\u00e7\u00e3o:** pol\u00edticas de reten\u00e7\u00e3o configuradas e presen\u00e7a de record labels\n\nA aus\u00eancia de Sensitivity Labels e de Audit Log ativo s\u00e3o dois dos cinco bloqueadores identificados pelo assessment \u2014 ambos classificados como impacto alto.\n\n> **Nota sobre licenciamento:** A coleta de dados de DLP e Sensitivity Labels requer Microsoft Purview (anteriormente Microsoft 365 Compliance). Se o tenant n\u00e3o possuir licen\u00e7as E3/E5 ou Purview add-on, esses collectors podem falhar mesmo com autentica\u00e7\u00e3o v\u00e1lida. O campo `entraIdTier` est\u00e1 nulo neste assessment, o que impede a confirma\u00e7\u00e3o do tier de licenciamento.\n\n### Seguran\u00e7a de Email\n\n**Dados n\u00e3o dispon\u00edveis \u2014 dom\u00ednio prim\u00e1rio n\u00e3o identificado.**\n\nO collector de seguran\u00e7a de email falhou com o erro espec\u00edfico: \"N\u00e3o foi poss\u00edvel obter o dom\u00ednio prim\u00e1rio do tenant.\" Isso impede a verifica\u00e7\u00e3o de SPF, DKIM e DMARC \u2014 os tr\u00eas pilares de autentica\u00e7\u00e3o de email que protegem o tenant contra phishing e spoofing.\n\nA falha pode ser consequ\u00eancia direta da falha de autentica\u00e7\u00e3o (sem token, n\u00e3o \u00e9 poss\u00edvel consultar os dom\u00ednios verificados via Graph API), ou pode indicar que o tenant n\u00e3o possui dom\u00ednio personalizado configurado e usa apenas o dom\u00ednio `*.onmicrosoft.com`.\n\nSem dados de SPF/DKIM/DMARC, n\u00e3o \u00e9 poss\u00edvel avaliar o risco de phishing direcionado ao tenant \u2014 um vetor importante especialmente em ambientes que adotam Copilot (ataques de engenharia social podem tentar extrair dados via prompts maliciosos).\n\n### Ado\u00e7\u00e3o M365 (Baseline)\n\n**Dados n\u00e3o dispon\u00edveis \u2014 falha de autentica\u00e7\u00e3o.**\n\nO dom\u00ednio de baseline (informa\u00e7\u00f5es do tenant, licenciamento e ado\u00e7\u00e3o) n\u00e3o retornou dados. N\u00e3o foi poss\u00edvel verificar:\n\n- **Licenciamento:** quais SKUs est\u00e3o ativas (E1, E3, E5, Business Premium, etc.)\n- **Usu\u00e1rios:** total de usu\u00e1rios ativos e licenciados\n- **Ado\u00e7\u00e3o por servi\u00e7o:** percentual de uso ativo do Teams, Exchange, SharePoint e OneDrive \u2014 indicadores de maturidade digital e prontid\u00e3o comportamental para o Copilot\n\nSem dados de ado\u00e7\u00e3o, n\u00e3o \u00e9 poss\u00edvel estimar o impacto esperado do Copilot nem identificar os servi\u00e7os que precisam de maior maturidade de uso antes da ativa\u00e7\u00e3o.\n\n## Roadmap de Remedia\u00e7\u00e3o\n\n> **Pr\u00e9-condi\u00e7\u00e3o obrigat\u00f3ria antes de qualquer fase:** Corrigir a autentica\u00e7\u00e3o do Assessment Platform para este tenant. O consentimento administrativo deve ser concedido ou renovado para que o assessment possa coletar dados reais. Sem isso, qualquer remedia\u00e7\u00e3o abaixo n\u00e3o poder\u00e1 ser verificada objetivamente.\n\n**Fase 1 \u2014 Imediato (antes de ativar o Copilot)**\n\n1. **Corrigir autentica\u00e7\u00e3o do assessment**\n   - O qu\u00ea: Revogar e regranting o consentimento administrativo da App Registration do BB Assessment Platform no tenant 9c8c533a-fb11-4146-a3cc-c05c399629f6 e executar novo assessment completo\n   - Por qu\u00ea: Sem dados reais, todas as avalia\u00e7\u00f5es abaixo s\u00e3o estimativas \u2014 o tenant pode estar melhor ou pior do que o score atual indica\n   - Esfor\u00e7o: Baixo (30 minutos \u2014 requer um Global Admin do tenant)\n   - Refer\u00eancia: Documenta\u00e7\u00e3o interna do BB Assessment Platform\n\n2. **Desabilitar links an\u00f4nimos no SharePoint/OneDrive** *(bloqueador cr\u00edtico)*\n   - O qu\u00ea: No SharePoint Admin Center, configurar `sharingCapability` para \"ExistingExternalUserSharingOnly\" ou mais restritivo; revisar e revogar links an\u00f4nimos ativos existentes\n   - Por qu\u00ea: Links an\u00f4nimos s\u00e3o o principal vetor de exposi\u00e7\u00e3o de dados via Copilot \u2014 o modelo referencia e pode vazar conte\u00fado acess\u00edvel anonimamente para qualquer usu\u00e1rio que fa\u00e7a uma pergunta relacionada\n   - Esfor\u00e7o: M\u00e9dio (2-4 horas para configura\u00e7\u00e3o + revis\u00e3o de links existentes)\n   - Refer\u00eancia: https://learn.microsoft.com/en-us/sharepoint/turn-external-sharing-on-or-off\n\n3. **Elevar cobertura de MFA para \u2265 80%** *(bloqueador cr\u00edtico)*\n   - O qu\u00ea: Habilitar MFA via Conditional Access (n\u00e3o via MFA per-user legacy) para todos os usu\u00e1rios; priorizar contas privilegiadas e usu\u00e1rios com acesso a dados sens\u00edveis\n   - Por qu\u00ea: Contas sem MFA s\u00e3o o ponto de entrada mais explorado \u2014 com Copilot ativo, uma conta comprometida vira um vetor de exfiltra\u00e7\u00e3o de dados em escala\n   - Esfor\u00e7o: Alto (1-2 semanas considerando comunica\u00e7\u00e3o, exce\u00e7\u00f5es e suporte ao usu\u00e1rio)\n   - Refer\u00eancia: https://learn.microsoft.com/en-us/entra/identity/authentication/tutorial-enable-azure-mfa\n\n**Fase 2 \u2014 Curto prazo (primeiras 4 semanas)**\n\n1. **Ativar e configurar Conditional Access** *(bloqueador alto)*\n   - Criar pol\u00edtica baseline exigindo MFA para todos os usu\u00e1rios; adicionar pol\u00edtica bloqueando autentica\u00e7\u00e3o legada (Basic Auth); considerar Named Locations para restringir acesso por geolocaliza\u00e7\u00e3o\n   - Refer\u00eancia: https://learn.microsoft.com/en-us/entra/identity/conditional-access/overview\n\n2. **Configurar Sensitivity Labels no Microsoft Purview** *(bloqueador alto)*\n   - Criar ao menos 3 labels b\u00e1sicos (P\u00fablico, Interno, Confidencial); configurar auto-labeling para identificar dados regulados automaticamente; aplicar labels aos sites existentes do SharePoint\n   - Refer\u00eancia: https://learn.microsoft.com/en-us/purview/sensitivity-labels\n\n3. **Verificar e ativar Audit Log** *(bloqueador alto)*\n   - Confirmar que o Unified Audit Log est\u00e1 habilitado no Purview Compliance Portal; verificar reten\u00e7\u00e3o m\u00ednima de 90 dias; configurar alertas para atividades cr\u00edticas\n   - Refer\u00eancia: https://learn.microsoft.com/en-us/purview/audit-log-enable-disable\n\n**Fase 3 \u2014 M\u00e9dio prazo (1-3 meses)**\n\n1. **Configurar DLP (Data Loss Prevention)**\n   - Criar pol\u00edticas DLP cobrindo Exchange, SharePoint, Teams e endpoints; priorizar detec\u00e7\u00e3o de CPF, CNPJ, dados financeiros e sa\u00fade conforme o setor do cliente\n   - Refer\u00eancia: https://learn.microsoft.com/en-us/purview/dlp-learn-about-dlp\n\n2. **Reduzir conte\u00fado desatualizado no SharePoint** *(bloqueador m\u00e9dio)*\n   - Identificar sites sem atividade nos \u00faltimos 90 dias; implementar processo de revis\u00e3o e arquivamento; ativar pol\u00edticas de reten\u00e7\u00e3o para conte\u00fado obsoleto\n   - Refer\u00eancia: https://learn.microsoft.com/en-us/sharepoint/site-lifecycle-management\n\n3. **Aumentar ado\u00e7\u00e3o dos servi\u00e7os M365**\n   - Elevar uso ativo de Teams, Exchange, SharePoint e OneDrive \u2014 o Copilot \u00e9 mais valioso quanto mais os usu\u00e1rios j\u00e1 usam os servi\u00e7os subjacentes\n   - Considerar programa de Change Management e treinamento de usu\u00e1rios antes do rollout do Copilot\n\n4. **Configurar autentica\u00e7\u00e3o de email (SPF, DKIM, DMARC)**\n   - Verificar e publicar registros SPF e DKIM para o dom\u00ednio prim\u00e1rio do tenant; configurar DMARC com pol\u00edtica `p=quarantine` ou `p=reject` para prote\u00e7\u00e3o contra spoofing\n\n## Risco Residual ap\u00f3s Remedia\u00e7\u00e3o\n\nMesmo ap\u00f3s concluir a Fase 1 e desbloquear os crit\u00e9rios cr\u00edticos, os seguintes riscos estruturais permanecem:\n\n1. **Qualidade dos dados no SharePoint:** O Copilot \u00e9 t\u00e3o bom quanto o conte\u00fado que referencia. Mesmo com links an\u00f4nimos desabilitados, conte\u00fado desatualizado, desorganizado ou sem classifica\u00e7\u00e3o de sensibilidade vai gerar respostas imprecisas ou potencialmente inadequadas \u2014 este \u00e9 um trabalho de longo prazo de governan\u00e7a de dados.\n\n2. **Oversharing estrutural:** Usu\u00e1rios frequentemente compartilham mais do que deveriam por conveni\u00eancia. Sem pol\u00edticas rigorosas de DLP e Sensitivity Labels com auto-labeling, o risco de oversharing persiste mesmo ap\u00f3s a remedia\u00e7\u00e3o imediata.\n\n3. **Maturidade de ado\u00e7\u00e3o:** Se os usu\u00e1rios n\u00e3o est\u00e3o habituados a usar Teams, SharePoint e OneDrive de forma consistente, o Copilot pode amplificar comportamentos inadequados (arquivos em locais errados, dados fora do ambiente M365, etc.) em vez de corrigi-los.\n\n4. **Aus\u00eancia de dados verificados:** Por conta da falha de autentica\u00e7\u00e3o neste assessment, n\u00e3o h\u00e1 linha de base real para os indicadores de identidade, dados e governan\u00e7a. \u00c9 poss\u00edvel que o tenant j\u00e1 esteja parcialmente remediado em algumas \u00e1reas \u2014 o risco residual real s\u00f3 poder\u00e1 ser estimado ap\u00f3s um novo assessment com autentica\u00e7\u00e3o funcional.\n\n## Nota T\u00e9cnica\n\nAssessment executado via BB Assessment Platform \u2014 leitura somente de configura\u00e7\u00f5es (zero write, zero acesso a conte\u00fado).\nDados coletados via Microsoft Graph API com consentimento administrativo do tenant.\n\n**Aten\u00e7\u00e3o:** Este assessment espec\u00edfico foi comprometido por falha de autentica\u00e7\u00e3o \u2014 o token de acesso para o tenant `9c8c533a-fb11-4146-a3cc-c05c399629f6` n\u00e3o estava v\u00e1lido no momento da execu\u00e7\u00e3o. Todos os scores de dom\u00ednio foram zerados automaticamente pelo motor de scoring como resultado dessa falha. Recomenda-se fortemente a execu\u00e7\u00e3o de um novo assessment ap\u00f3s corre\u00e7\u00e3o do consentimento para obter uma avalia\u00e7\u00e3o precisa do tenant.\n"}], "grading": null}, {"id": "eval-1-tenant9c8c-without_skill", "prompt": "Acabei o assessment do cliente. Quero que voc\u00ea analise o resultado e me diga se ele est\u00e1 pronto para o Copilot. O arquivo de resultado mais recente est\u00e1 em /Users/cleversondrobnievski/Documents/Claude/Projects/BB Assessment Platform - M365/backend/data/results/latest_9c8c533a-fb11-4146-a3cc-c05c399629f6.json", "eval_id": 1, "outputs": [{"name": "laudo.md", "type": "text", "content": "# Laudo de Prontid\u00e3o para Copilot for Microsoft 365\n**Tenant ID:** 9c8c533a-fb11-4146-a3cc-c05c399629f6\n**Data do Assessment:** 06/05/2026\n**Data do Laudo:** 06/05/2026\n\n---\n\n## Veredicto: NAO PRONTO para Copilot for Microsoft 365\n\nO tenant avaliado **nao atende nenhum dos pr\u00e9-requisitos** necess\u00e1rios para implanta\u00e7\u00e3o segura do Copilot for Microsoft 365. O score geral \u00e9 **0/100** e todos os 6 checks de readiness falharam, incluindo 2 bloqueadores cr\u00edticos e 3 de alto impacto.\n\n---\n\n## Contexto Importante: Falha na Coleta de Dados\n\nAntes de detalhar os resultados, \u00e9 necess\u00e1rio registrar uma ressalva t\u00e9cnica importante: **todos os coletores falharam com erro de autentica\u00e7\u00e3o** (\"No valid token for tenant\"). Isso significa que os dados reais do tenant **nao foram coletados** \u2014 os resultados negativos refletem aus\u00eancia de evid\u00eancia, n\u00e3o evid\u00eancia de aus\u00eancia.\n\nOs dom\u00ednios afetados pela falha de coleta foram:\n- Baseline / Tenant Info\n- Entra ID (MFA, Conditional Access, usu\u00e1rios privilegiados, guests, usu\u00e1rios em risco)\n- SharePoint (permiss\u00f5es, propriet\u00e1rios, conte\u00fado obsoleto, armazenamento, arquivos)\n- Governance (Sensitivity Labels, Audit Log)\n- Email Security (dom\u00ednio prim\u00e1rio nao obtido)\n\n**O m\u00f3dulo de IA Readiness** derivou seus resultados a partir da aus\u00eancia de dados, classificando todos os checks como reprovados por falta de informa\u00e7\u00e3o.\n\n**Recomenda\u00e7\u00e3o imediata:** Verificar e corrigir o processo de consentimento OAuth / App Registration no tenant do cliente antes de qualquer interpreta\u00e7\u00e3o definitiva dos resultados. O assessment deve ser reexecutado com autentica\u00e7\u00e3o funcional.\n\n---\n\n## An\u00e1lise por Crit\u00e9rio de Readiness\n\nMesmo considerando a ressalva acima, os crit\u00e9rios avaliados s\u00e3o exatamente os que a Microsoft exige para uma implanta\u00e7\u00e3o respons\u00e1vel do Copilot. Abaixo est\u00e1 a an\u00e1lise de cada um:\n\n### 1. Links Anonimos Desabilitados \u2014 CRITICO (reprovado)\n**Peso: 30% | Impacto: Cr\u00edtico**\n\nLinks an\u00f4nimos no SharePoint/OneDrive permitem que qualquer pessoa acesse conte\u00fado sem autentica\u00e7\u00e3o. O Copilot indexa e processa conte\u00fado ao qual o usu\u00e1rio tem acesso \u2014 se links an\u00f4nimos estiverem habilitados, o Copilot pode potencialmente expor ou trabalhar com conte\u00fado que deveria ser restrito. Este \u00e9 o vetor mais direto de exfiltra\u00e7\u00e3o de dados via IA generativa.\n\n**Risco:** Dados sens\u00edveis podem ser acessados pelo Copilot de forma inadequada e surfaceados para usu\u00e1rios sem a permiss\u00e3o correta.\n\n### 2. Cobertura de MFA >= 80% \u2014 CRITICO (reprovado)\n**Peso: 25% | Impacto: Cr\u00edtico**\n\nO Copilot opera com os privil\u00e9gios completos do usu\u00e1rio autenticado. Se contas de usu\u00e1rio puderem ser comprometidas via credential stuffing ou phishing (o que \u00e9 muito mais f\u00e1cil sem MFA), um atacante com acesso \u00e0 conta tem, efetivamente, acesso ao Copilot e a todo o conte\u00fado que ele pode indexar \u2014 e-mails, arquivos, chats, reuni\u00f5es.\n\n**Risco:** Comprometimento de conta = comprometimento de dados corporativos via Copilot.\n\n### 3. Conditional Access Ativo \u2014 ALTO (reprovado)\n**Peso: 15% | Impacto: Alto**\n\nSem pol\u00edticas de Acesso Condicional, n\u00e3o h\u00e1 controle sobre de onde, de quais dispositivos e sob quais condi\u00e7\u00f5es o Copilot pode ser acessado. Um dispositivo n\u00e3o gerenciado ou uma localiza\u00e7\u00e3o suspeita pode ter o mesmo acesso que uma esta\u00e7\u00e3o de trabalho corporativa gerenciada.\n\n**Risco:** Aus\u00eancia de controle de contexto de acesso ao Copilot.\n\n### 4. Sensitivity Labels Configurados \u2014 ALTO (reprovado)\n**Peso: 15% | Impacto: Alto**\n\nO Copilot utiliza Sensitivity Labels para entender quais dados s\u00e3o confidenciais e aplicar prote\u00e7\u00f5es adequadas. Sem labels, o Copilot n\u00e3o tem como distinguir um documento p\u00fablico de um documento altamente confidencial, e pode incluir ambos da mesma forma em respostas e resumos.\n\n**Risco:** Dados confidenciais podem ser surfaceados em respostas do Copilot sem qualquer sinaliza\u00e7\u00e3o ou restri\u00e7\u00e3o.\n\n### 5. Audit Log Ativo com Eventos Recentes \u2014 ALTO (reprovado)\n**Peso: 10% | Impacto: Alto**\n\nO Audit Log \u00e9 essencial para rastrear o que o Copilot fez, quais dados foram acessados e detectar uso an\u00f4malo. Sem auditoria ativa, n\u00e3o h\u00e1 visibilidade sobre o comportamento do Copilot e nenhuma capacidade de investigar incidentes.\n\n**Risco:** Impossibilidade de detectar, investigar e responder a incidentes envolvendo o Copilot.\n\n### 6. Conte\u00fado Atualizado (sites inativos < 30%) \u2014 MEDIO (reprovado)\n**Peso: 5% | Impacto: M\u00e9dio**\n\nO Copilot aprende e responde com base no conte\u00fado dispon\u00edvel. Sites com conte\u00fado obsoleto geram respostas desatualizadas ou incorretas, degradando a qualidade e a confiabilidade das respostas.\n\n**Risco:** Qualidade comprometida das respostas do Copilot, podendo levar a decis\u00f5es baseadas em informa\u00e7\u00f5es desatualizadas.\n\n---\n\n## Resumo dos Bloqueadores\n\n| Crit\u00e9rio | Impacto | Status |\n|---|---|---|\n| Links an\u00f4nimos desabilitados | CRITICO | Reprovado |\n| Cobertura MFA >= 80% | CRITICO | Reprovado |\n| Conditional Access ativo | ALTO | Reprovado |\n| Sensitivity Labels configurados | ALTO | Reprovado |\n| Audit Log com eventos recentes | ALTO | Reprovado |\n| Conte\u00fado atualizado (sites inativos < 30%) | MEDIO | Reprovado |\n\n**Resultado:** 0 de 6 crit\u00e9rios atendidos\n\n---\n\n## Roadmap Recomendado\n\n### Fase 0 \u2014 Imediato (antes de qualquer outra a\u00e7\u00e3o)\nCorrigir a autentica\u00e7\u00e3o da plataforma de assessment e reexecutar a coleta. Sem dados reais, qualquer plano de remedia\u00e7\u00e3o \u00e9 baseado em hip\u00f3teses.\n\n### Fase 1 \u2014 Bloqueadores Cr\u00edticos (0\u201330 dias)\n1. **Desabilitar links an\u00f4nimos no SharePoint e OneDrive** via pol\u00edtica de tenant (SharePoint Admin Center > Sharing > definir \"Anyone\" como bloqueado ou restrito a dom\u00ednios espec\u00edficos)\n2. **Habilitar e enfor\u00e7ar MFA para todos os usu\u00e1rios** via Microsoft Entra ID \u2014 priorizar contas privilegiadas e depois expandir para toda a base de usu\u00e1rios\n\n### Fase 2 \u2014 Controles de Alto Impacto (30\u201360 dias)\n3. **Implementar pol\u00edticas de Conditional Access** cobrindo ao menos: exigir MFA sempre, bloquear dispositivos n\u00e3o conformes, bloquear pa\u00edses de risco\n4. **Configurar Sensitivity Labels** no Microsoft Purview \u2014 definir taxonomia (P\u00fablico, Interno, Confidencial, Altamente Confidencial) e aplicar auto-labeling\n5. **Ativar e verificar o Unified Audit Log** no Microsoft Purview \u2014 garantir que eventos de SharePoint, Exchange, Teams e Entra ID estejam sendo registrados\n\n### Fase 3 \u2014 Qualidade e Governan\u00e7a (60\u201390 dias)\n6. **Revisar e limpar conte\u00fado obsoleto** no SharePoint \u2014 identificar sites inativos e definir pol\u00edtica de lifecycle\n7. **Revisar permiss\u00f5es** de SharePoint e OneDrive \u2014 remover acessos excessivos e implementar princ\u00edpio de menor privil\u00e9gio\n8. **Reexecutar o assessment** completo e validar os resultados antes de avan\u00e7ar com licenciamento e implanta\u00e7\u00e3o do Copilot\n\n---\n\n## Conclus\u00e3o\n\nO tenant **nao est\u00e1 em condi\u00e7\u00f5es de receber o Copilot for Microsoft 365** de forma segura e respons\u00e1vel. Os bloqueadores identificados \u2014 especialmente links an\u00f4nimos e baixa cobertura de MFA \u2014 representam riscos reais de exfiltra\u00e7\u00e3o de dados e comprometimento de identidade que seriam amplificados, n\u00e3o mitigados, pela introdu\u00e7\u00e3o de uma IA generativa com acesso amplo ao conte\u00fado corporativo.\n\nA boa not\u00edcia \u00e9 que todos os bloqueadores s\u00e3o remedi\u00e1veis com ferramentas j\u00e1 dispon\u00edveis no Microsoft 365. Com o plano de remedia\u00e7\u00e3o correto, o tenant pode atingir o n\u00edvel m\u00ednimo de readiness em 60 a 90 dias.\n\n**Recomenda\u00e7\u00e3o final:** Nao avan\u00e7ar com licenciamento ou implanta\u00e7\u00e3o do Copilot at\u00e9 que ao menos os crit\u00e9rios cr\u00edticos e de alto impacto sejam atendidos. Reexecutar o assessment com autentica\u00e7\u00e3o funcional para obter dados reais antes de qualquer decis\u00e3o.\n\n---\n\n*Laudo gerado em 06/05/2026 com base nos dados do assessment de tenant 9c8c533a-fb11-4146-a3cc-c05c399629f6.*\n"}], "grading": null}, {"id": "eval-2-tenant4cec-with_skill", "prompt": "O assessment terminou. Me d\u00e1 o veredicto de prontid\u00e3o para IA do tenant 4cec954a. Os resultados est\u00e3o em latest_4cec954a-b579-4b74-a33e-1882dda36c0f.json", "eval_id": 2, "outputs": [{"name": "laudo.md", "type": "text", "content": "# Laudo de Prontid\u00e3o para Copilot \u2014 4cec954a-b579-4b74-a33e-1882dda36c0f\nAssessment realizado em: 06 de maio de 2026, \u00e0s 15h17 (UTC)\n\n## Veredicto\n\nEste tenant N\u00c3O est\u00e1 pronto para receber o Copilot for Microsoft 365.\n\nO assessment n\u00e3o conseguiu coletar dados reais do tenant \u2014 todos os collectors falharam com o erro \"No valid token for tenant 4cec954a-b579-4b74-a33e-1882dda36c0f\", indicando aus\u00eancia de consentimento administrativo v\u00e1lido ou token de acesso expirado/inv\u00e1lido. Em fun\u00e7\u00e3o da aus\u00eancia total de dados, o motor de scoring assumiu o pior cen\u00e1rio para todos os pr\u00e9-requisitos do Copilot: 0 de 6 checks passaram, 2 bloqueadores cr\u00edticos e 3 bloqueadores de alto impacto foram identificados. Sem autentica\u00e7\u00e3o v\u00e1lida, n\u00e3o \u00e9 poss\u00edvel garantir qualquer n\u00edvel de governan\u00e7a, seguran\u00e7a ou prote\u00e7\u00e3o de dados necess\u00e1rios para operar o Copilot com seguran\u00e7a.\n\n## Score Geral: 0/5.0 \u2014 N\u00e3o Pronto\n\n| Dom\u00ednio | Score | Situa\u00e7\u00e3o |\n|---|---|---|\n| Baseline (Licenciamento e Ado\u00e7\u00e3o) | n\u00e3o dispon\u00edvel | \ud83d\udd34 Cr\u00edtico \u2014 falha de autentica\u00e7\u00e3o |\n| Identidade (Entra ID) | 0/5 | \ud83d\udd34 Cr\u00edtico \u2014 falha de autentica\u00e7\u00e3o |\n| Dados (SharePoint) | 0/5 | \ud83d\udd34 Cr\u00edtico \u2014 falha de autentica\u00e7\u00e3o |\n| Governan\u00e7a (Purview) | 0/5 | \ud83d\udd34 Cr\u00edtico \u2014 falha de autentica\u00e7\u00e3o |\n| Seguran\u00e7a de Email | n\u00e3o dispon\u00edvel | \ud83d\udd34 Cr\u00edtico \u2014 dom\u00ednio prim\u00e1rio n\u00e3o obtido |\n| Prontid\u00e3o para IA (iaReadiness) | 0/5 | \ud83d\udd34 Cr\u00edtico \u2014 0/6 pr\u00e9-requisitos atendidos |\n\n## Pr\u00e9-requisitos do Copilot (Checklist)\n\n- \u274c Links an\u00f4nimos desabilitados (peso: 30% | impacto: cr\u00edtico)\n- \u274c Cobertura MFA \u2265 80% (peso: 25% | impacto: cr\u00edtico)\n- \u274c Conditional Access ativo (peso: 15% | impacto: alto)\n- \u274c Sensitivity Labels configurados (peso: 15% | impacto: alto)\n- \u274c Audit Log com eventos recentes (peso: 10% | impacto: alto)\n- \u274c Conte\u00fado atualizado (sites inativos < 30%) (peso: 5% | impacto: m\u00e9dio)\n\nPassed: 0/6\n\n## Bloqueadores para o Copilot\n\n**CR\u00cdTICO: Links an\u00f4nimos desabilitados**\nLinks an\u00f4nimos permitem que qualquer pessoa acesse conte\u00fado do SharePoint e OneDrive sem autentica\u00e7\u00e3o. Com o Copilot habilitado, a IA pode referenciar, resumir e expor conte\u00fados dispon\u00edveis via links an\u00f4nimos, ampliando massivamente a superf\u00edcie de exposi\u00e7\u00e3o de dados sens\u00edveis. Este \u00e9 o bloqueador de maior peso (30%) e deve ser o primeiro a ser resolvido.\n\n**CR\u00cdTICO: Cobertura MFA \u2265 80%**\nSem autentica\u00e7\u00e3o multifator amplamente adotada, as identidades do tenant est\u00e3o vulner\u00e1veis a comprometimento por phishing e credential stuffing. O Copilot opera com os privil\u00e9gios do usu\u00e1rio autenticado \u2014 uma conta comprometida sem MFA equivale a acesso irrestrito do atacante a todos os dados que o Copilot pode acessar. Este bloqueador representa 25% do score de prontid\u00e3o.\n\n**ALTO: Conditional Access ativo**\nSem pol\u00edticas de Conditional Access, o tenant n\u00e3o tem controle sobre de onde, com quais dispositivos e sob quais condi\u00e7\u00f5es os usu\u00e1rios acessam o M365. O Copilot processa dados corporativos sens\u00edveis e requer que o acesso seja condicionado a fatores de risco e conformidade de dispositivo.\n\n**ALTO: Sensitivity Labels configurados**\nO Copilot respeita as Sensitivity Labels ao processar e citar documentos \u2014 mas sem labels configurados, a IA n\u00e3o tem como distinguir o que \u00e9 p\u00fablico, interno, confidencial ou restrito. Isso cria risco real de o Copilot sugerir ou expor conte\u00fado sens\u00edvel em contextos inadequados.\n\n**ALTO: Audit Log com eventos recentes**\nO Audit Log \u00e9 a base de rastreabilidade para qualquer incidente de seguran\u00e7a envolvendo o Copilot. Sem logs ativos, n\u00e3o h\u00e1 como investigar acessos indevidos, rastrear comportamentos an\u00f4malos ou demonstrar conformidade regulat\u00f3ria ap\u00f3s um evento de exposi\u00e7\u00e3o de dados.\n\n## An\u00e1lise por Dom\u00ednio\n\n### Identidade (Entra ID)\n\nTodos os 5 collectors de Entra ID falharam com o erro \"No valid token for tenant 4cec954a-b579-4b74-a33e-1882dda36c0f\". Isso significa que n\u00e3o foi poss\u00edvel avaliar:\n\n- **MFA**: cobertura percentual desconhecida \u2014 assumido como n\u00e3o atendido (< 80%)\n- **Conditional Access**: presen\u00e7a e configura\u00e7\u00e3o de pol\u00edticas desconhecida \u2014 assumido como ausente\n- **Privilegiados**: contagem de Global Admins, admins sem MFA e guests privilegiados \u2014 n\u00e3o dispon\u00edvel\n- **Guests**: contagem de contas guest inativas \u2014 n\u00e3o dispon\u00edvel\n- **Usu\u00e1rios em risco**: detec\u00e7\u00e3o de riskyUsers \u2014 n\u00e3o dispon\u00edvel\n\nA falha de autentica\u00e7\u00e3o impede qualquer avalia\u00e7\u00e3o de identidade. O domainScore de 0 reflete a aus\u00eancia completa de evid\u00eancias de controles implantados, n\u00e3o necessariamente que eles n\u00e3o existam.\n\n### Dados (SharePoint)\n\nTodos os 5 collectors de SharePoint falharam por aus\u00eancia de token v\u00e1lido. N\u00e3o foi poss\u00edvel avaliar:\n\n- **Permiss\u00f5es**: sharingCapability e status de links an\u00f4nimos \u2014 desconhecido, assumido como permissivo\n- **Ownership**: sites sem dono ou com donos desativados \u2014 n\u00e3o dispon\u00edvel\n- **Conte\u00fado obsoleto**: percentual de sites inativos \u2014 n\u00e3o dispon\u00edvel\n- **Storage**: uso e distribui\u00e7\u00e3o de armazenamento \u2014 n\u00e3o dispon\u00edvel\n- **Arquivos**: tipos e volumes de arquivos \u2014 n\u00e3o dispon\u00edvel\n\nO check \"Links an\u00f4nimos desabilitados\" foi marcado como FALHOU por aus\u00eancia de evid\u00eancia positiva \u2014 trata-se de conservadorismo t\u00e9cnico correto: sem acesso para verificar, presume-se o pior cen\u00e1rio para fins de seguran\u00e7a.\n\n### Governan\u00e7a (Purview)\n\nOs collectors de Sensitivity Labels e Audit Log falharam por aus\u00eancia de token. N\u00e3o foi poss\u00edvel avaliar:\n\n- **Sensitivity Labels**: exist\u00eancia, quantidade e presen\u00e7a de auto-labeling \u2014 n\u00e3o dispon\u00edvel\n- **Audit Log**: eventos recentes e cobertura \u2014 n\u00e3o dispon\u00edvel\n- **DLP** (Data Loss Prevention): collector n\u00e3o retornou dados \u2014 situa\u00e7\u00e3o desconhecida\n- **Reten\u00e7\u00e3o**: pol\u00edticas de reten\u00e7\u00e3o \u2014 n\u00e3o avaliadas neste assessment\n\nA aus\u00eancia de dados de governan\u00e7a \u00e9 particularmente grave para o Copilot, pois sem labels e DLP configurados, a IA n\u00e3o tem par\u00e2metros para operar de forma segura sobre o conte\u00fado do tenant.\n\n### Seguran\u00e7a de Email\n\nO collector de Email Security retornou o erro: \"N\u00e3o foi poss\u00edvel obter o dom\u00ednio prim\u00e1rio do tenant.\" Isso impediu a verifica\u00e7\u00e3o de SPF, DKIM e DMARC. A configura\u00e7\u00e3o de autentica\u00e7\u00e3o de email do tenant \u00e9 completamente desconhecida. Sem essa informa\u00e7\u00e3o, n\u00e3o \u00e9 poss\u00edvel avaliar o risco de phishing e spoofing \u2014 vetores cr\u00edticos que podem comprometer contas e, indiretamente, o uso seguro do Copilot.\n\n### Ado\u00e7\u00e3o M365 (Baseline)\n\nOs collectors de Baseline (tenantInfo e licenciamento/uso) falharam integralmente. N\u00e3o foi poss\u00edvel avaliar:\n\n- **Licenciamento**: quais licen\u00e7as M365 est\u00e3o ativas (incluindo se h\u00e1 licen\u00e7a do Copilot)\n- **Ado\u00e7\u00e3o por servi\u00e7o**: percentual de uso do Teams, Exchange, SharePoint e OneDrive\n- **Base de usu\u00e1rios**: total de usu\u00e1rios e perfil de ado\u00e7\u00e3o geral\n\nO domainScore para Baseline \u00e9 null (n\u00e3o calcul\u00e1vel), n\u00e3o 0 \u2014 distin\u00e7\u00e3o importante: aus\u00eancia de dados, n\u00e3o evid\u00eancia de falha.\n\n## Roadmap de Remedia\u00e7\u00e3o\n\n**Fase 0 \u2014 Pr\u00e9-requisito imediato (antes de qualquer outra a\u00e7\u00e3o)**\n\nAntes de qualquer remedia\u00e7\u00e3o de seguran\u00e7a, \u00e9 necess\u00e1rio resolver o problema de autentica\u00e7\u00e3o:\n\n- **Renovar o consentimento administrativo** para a App Registration do BB Assessment Platform no tenant `4cec954a-b579-4b74-a33e-1882dda36c0f`. O token atual est\u00e1 expirado ou ausente.\n- **A\u00e7\u00e3o**: Um Global Admin do tenant deve acessar o link de consentimento e autorizar novamente as permiss\u00f5es de leitura. Ap\u00f3s isso, reexecutar o assessment para obter dados reais.\n- **Esfor\u00e7o**: Baixo (< 30 minutos)\n- **Refer\u00eancia**: [Microsoft Entra Admin Consent](https://learn.microsoft.com/en-us/azure/active-directory/develop/v2-admin-consent)\n\n**Fase 1 \u2014 Imediato (antes de ativar o Copilot)**\n\n1. **Desabilitar links an\u00f4nimos no SharePoint e OneDrive**\n   - O qu\u00ea: Alterar a configura\u00e7\u00e3o de compartilhamento do tenant para \"Somente pessoas da organiza\u00e7\u00e3o\" ou, no m\u00ednimo, \"Pessoas espec\u00edficas\".\n   - Por qu\u00ea: Links an\u00f4nimos s\u00e3o o principal vetor de exposi\u00e7\u00e3o acidental de dados via Copilot. Com peso de 30% no score, \u00e9 o item de maior retorno.\n   - Esfor\u00e7o: Baixo (configura\u00e7\u00e3o no SharePoint Admin Center)\n   - Refer\u00eancia: [https://learn.microsoft.com/en-us/copilot/microsoft-365/microsoft-365-copilot-requirements](https://learn.microsoft.com/en-us/copilot/microsoft-365/microsoft-365-copilot-requirements)\n\n2. **Elevar cobertura MFA para \u2265 80%**\n   - O qu\u00ea: Habilitar MFA para todos os usu\u00e1rios via Security Defaults ou Conditional Access. Priorizar usu\u00e1rios com acesso a dados sens\u00edveis e administradores.\n   - Por qu\u00ea: Contas sem MFA s\u00e3o o vetor mais comum de comprometimento. O Copilot opera com os privil\u00e9gios do usu\u00e1rio \u2014 conta comprometida = dados comprometidos via IA.\n   - Esfor\u00e7o: M\u00e9dio (requer campanha de rollout com usu\u00e1rios)\n   - Refer\u00eancia: [https://learn.microsoft.com/en-us/copilot/microsoft-365/microsoft-365-copilot-requirements](https://learn.microsoft.com/en-us/copilot/microsoft-365/microsoft-365-copilot-requirements)\n\n**Fase 2 \u2014 Curto prazo (primeiras 4 semanas)**\n\n3. **Implementar Conditional Access**\n   - O qu\u00ea: Criar ao menos 3 pol\u00edticas base: exigir MFA para todos, bloquear autentica\u00e7\u00e3o legada, exigir dispositivo compliant para acesso ao M365.\n   - Por qu\u00ea: CA \u00e9 o controle de acesso adaptativo que permite ao Copilot operar em um ambiente onde apenas identidades verificadas e dispositivos confi\u00e1veis t\u00eam acesso.\n   - Esfor\u00e7o: M\u00e9dio (requer planejamento e testes para evitar bloqueios)\n\n4. **Configurar Sensitivity Labels no Microsoft Purview**\n   - O qu\u00ea: Criar uma taxonomia m\u00ednima de labels (ex: P\u00fablico, Interno, Confidencial, Altamente Confidencial) e public\u00e1-los para os usu\u00e1rios.\n   - Por qu\u00ea: Sem labels, o Copilot n\u00e3o pode distinguir o que \u00e9 seguro referenciar. Labels s\u00e3o a base de dados para DLP e prote\u00e7\u00e3o de informa\u00e7\u00e3o.\n   - Esfor\u00e7o: M\u00e9dio (defini\u00e7\u00e3o de taxonomia + treinamento de usu\u00e1rios)\n\n5. **Ativar e verificar o Audit Log**\n   - O qu\u00ea: Confirmar que o Audit Log est\u00e1 ativo no Microsoft Purview Compliance Portal e que eventos est\u00e3o sendo gerados.\n   - Por qu\u00ea: Rastreabilidade \u00e9 obrigat\u00f3ria para compliance e investiga\u00e7\u00e3o de incidentes. Sem logs, incidentes envolvendo o Copilot s\u00e3o investig\u00e1veis.\n   - Esfor\u00e7o: Baixo (ativa\u00e7\u00e3o simples, por\u00e9m requer licen\u00e7a adequada)\n\n**Fase 3 \u2014 M\u00e9dio prazo (1-3 meses)**\n\n6. **Resolver conte\u00fado obsoleto no SharePoint**\n   - O qu\u00ea: Identificar e tratar sites inativos (ownership, arquivamento ou exclus\u00e3o).\n   - Por qu\u00ea: Conte\u00fado obsoleto aumenta o risco de o Copilot referenciar informa\u00e7\u00f5es desatualizadas ou incorretas nas respostas.\n   - Esfor\u00e7o: Alto (requer envolvimento de donos de sites e campanhas de limpeza)\n\n7. **Implementar DLP (Data Loss Prevention)**\n   - O qu\u00ea: Criar pol\u00edticas DLP para proteger informa\u00e7\u00f5es sens\u00edveis (CPF, dados financeiros, propriedade intelectual) em Exchange, Teams e SharePoint.\n   - Por qu\u00ea: DLP limita a capacidade do Copilot de processar e expor dados regulados inadvertidamente.\n   - Esfor\u00e7o: M\u00e9dio-alto (requer mapeamento de dados sens\u00edveis)\n\n8. **Configurar autentica\u00e7\u00e3o de email (SPF, DKIM, DMARC)**\n   - O qu\u00ea: Verificar e corrigir registros SPF, DKIM e DMARC no DNS do dom\u00ednio prim\u00e1rio.\n   - Por qu\u00ea: Autentica\u00e7\u00e3o de email robusta reduz risco de phishing que pode comprometer contas dos usu\u00e1rios do Copilot.\n   - Esfor\u00e7o: Baixo-m\u00e9dio (altera\u00e7\u00f5es de DNS)\n\n## Risco Residual ap\u00f3s Remedia\u00e7\u00e3o\n\nMesmo ap\u00f3s resolver todos os itens da Fase 1, o tenant ainda apresentar\u00e1 gaps estruturais significativos:\n\n- **Dados hist\u00f3ricos n\u00e3o classificados**: documentos, emails e arquivos criados antes da implementa\u00e7\u00e3o de Sensitivity Labels n\u00e3o ser\u00e3o automaticamente classificados. O Copilot poder\u00e1 referenciar conte\u00fado sens\u00edvel n\u00e3o rotulado. A remedia\u00e7\u00e3o desse gap requer uma campanha de classifica\u00e7\u00e3o retroativa ou auto-labeling \u2014 esfor\u00e7o consider\u00e1vel.\n\n- **Ado\u00e7\u00e3o de MFA gradual**: elevar a cobertura de MFA de um n\u00edvel desconhecido para \u2265 80% envolve mudan\u00e7a organizacional e resist\u00eancia de usu\u00e1rios. O risco de contas sem MFA persistir\u00e1 durante o per\u00edodo de rollout.\n\n- **Aus\u00eancia de dados de baseline**: sem os dados de licenciamento e ado\u00e7\u00e3o, n\u00e3o \u00e9 poss\u00edvel dimensionar corretamente o impacto do Copilot, identificar usu\u00e1rios candidatos ao piloto ou medir ROI. Isso \u00e9 um gap estrat\u00e9gico, n\u00e3o apenas t\u00e9cnico.\n\n- **Visibilidade limitada at\u00e9 novo assessment**: as recomenda\u00e7\u00f5es acima s\u00e3o baseadas em aus\u00eancia de dados (pior caso assumido), n\u00e3o em evid\u00eancias reais de falha. \u00c9 poss\u00edvel que alguns controles j\u00e1 existam no tenant \u2014 apenas o assessment com autentica\u00e7\u00e3o v\u00e1lida poder\u00e1 confirmar.\n\n## Nota T\u00e9cnica\n\nAssessment executado via BB Assessment Platform \u2014 leitura somente de configura\u00e7\u00f5es (zero write, zero acesso a conte\u00fado).\nDados coletados via Microsoft Graph API com consentimento administrativo do tenant.\n\n**Observa\u00e7\u00e3o cr\u00edtica sobre este assessment**: O resultado Score 0/5.0 e \"N\u00e3o Pronto\" reflete primariamente uma falha de autentica\u00e7\u00e3o (\"No valid token\"), n\u00e3o necessariamente a aus\u00eancia real dos controles de seguran\u00e7a. O consentimento administrativo para o tenant `4cec954a-b579-4b74-a33e-1882dda36c0f` deve ser renovado e o assessment reexecutado para obter um diagn\u00f3stico real e acion\u00e1vel. O roadmap acima representa o pior cen\u00e1rio plaus\u00edvel e deve ser validado ap\u00f3s novo assessment com autentica\u00e7\u00e3o v\u00e1lida.\n"}], "grading": null}, {"id": "eval-3-executivo-with_skill", "prompt": "Vou apresentar para o diretor de TI do cliente amanh\u00e3. Preciso de um laudo executivo baseado no tenant fc512260. Destaque o que \u00e9 mais urgente resolver antes de ativar o Copilot.", "eval_id": 3, "outputs": [{"name": "laudo.md", "type": "text", "content": "# Laudo de Prontid\u00e3o para Copilot \u2014 A.P.TORTELLI\nAssessment realizado em: 05 de maio de 2026, \u00e0s 23h00 (hor\u00e1rio UTC)\n\n---\n\n## Veredicto\n\nEste tenant **N\u00c3O est\u00e1 pronto** para receber o Copilot for Microsoft 365.\n\nO assessment identificou 1 bloqueador cr\u00edtico e 2 bloqueadores de alto impacto que impedem a ativa\u00e7\u00e3o segura do Copilot. A cobertura de MFA n\u00e3o p\u00f4de ser validada porque o tenant opera com **Entra ID Free** \u2014 plano que n\u00e3o disponibiliza relat\u00f3rios de MFA nem Conditional Access, o que \u00e9 tratado como aus\u00eancia de prote\u00e7\u00e3o para fins de prontid\u00e3o para IA. Adicionalmente, n\u00e3o h\u00e1 nenhum Sensitivity Label configurado para classificar dados, e 91% dos sites SharePoint est\u00e3o inativos h\u00e1 mais de 180 dias, o que significa que o Copilot indexaria uma base massiva de conte\u00fado desorganizado, obsoleto e sem classifica\u00e7\u00e3o de sensibilidade.\n\n---\n\n## Score Geral: 2.0/5.0 \u2014 Baixa Prontid\u00e3o\n\n| Dom\u00ednio | Score | Situa\u00e7\u00e3o |\n|---|---|---|\n| Baseline (Licenciamento e Ado\u00e7\u00e3o) | 2.9/5.0 | \u26a0\ufe0f Aten\u00e7\u00e3o |\n| Identidade (Entra ID) | 1.1/5.0 | \ud83d\udd34 Cr\u00edtico |\n| Dados (SharePoint) | 2.1/5.0 | \ud83d\udd34 Cr\u00edtico |\n| Governan\u00e7a (Purview) | 2.0/5.0 | \ud83d\udd34 Cr\u00edtico |\n| Seguran\u00e7a de Email | 2.1/5.0 | \u26a0\ufe0f Aten\u00e7\u00e3o |\n| Prontid\u00e3o para IA | 2.0/5.0 | \ud83d\udd34 Cr\u00edtico |\n\n---\n\n## Pr\u00e9-requisitos do Copilot (Checklist)\n\n- \u2705 Links an\u00f4nimos desabilitados (peso: 30% | impacto: cr\u00edtico)\n- \u274c Cobertura MFA \u2265 80% (peso: 25% | impacto: cr\u00edtico)\n- \u274c Conditional Access ativo (peso: 15% | impacto: alto)\n- \u274c Sensitivity Labels configurados (peso: 15% | impacto: alto)\n- \u2705 Audit Log com eventos recentes (peso: 10% | impacto: alto)\n- \u274c Conte\u00fado atualizado \u2014 sites inativos < 30% (peso: 5% | impacto: m\u00e9dio)\n\n**Passed: 2/6**\n\n---\n\n## Bloqueadores para o Copilot\n\n**CR\u00cdTICO: Cobertura MFA \u2265 80%**\nO tenant opera com Entra ID Free, que n\u00e3o disponibiliza relat\u00f3rios de autentica\u00e7\u00e3o multifator. Sem MFA validado, qualquer credencial comprometida no tenant concede acesso irrestrito a todos os dados que o Copilot pode indexar \u2014 e-mails, documentos, chats do Teams. Este \u00e9 o vetor de ataque mais comum em incidentes de vazamento via IA e \u00e9 inaceit\u00e1vel para um ambiente com Copilot ativo.\n\n**ALTO: Conditional Access ativo**\nSem Conditional Access, o tenant n\u00e3o possui mecanismos de bloqueio de acesso com base em risco, localiza\u00e7\u00e3o, dispositivo gerenciado ou contexto de sess\u00e3o. Qualquer dispositivo, de qualquer lugar, com as credenciais corretas, acessa o ambiente sem restri\u00e7\u00f5es adicionais \u2014 incluindo as respostas geradas pelo Copilot com dados confidenciais.\n\n**ALTO: Sensitivity Labels configurados**\nNenhum Sensitivity Label foi encontrado no tenant (coletado como indispon\u00edvel por limita\u00e7\u00e3o de licenciamento Purview). Sem labels, o Copilot n\u00e3o tem como distinguir um documento p\u00fablico de um documento com dados financeiros sens\u00edveis. Toda informa\u00e7\u00e3o \u00e9 tratada como equivalente, representando risco de exposi\u00e7\u00e3o indevida em respostas da IA.\n\n---\n\n## An\u00e1lise por Dom\u00ednio\n\n### Identidade (Entra ID)\nScore: **1.1/5.0 \u2014 Cr\u00edtico**\n\nO tenant opera com **Entra ID Free**, o que impede a coleta dos principais indicadores de seguran\u00e7a de identidade:\n\n- **MFA:** Collector indispon\u00edvel \u2014 o plano Free n\u00e3o oferece relat\u00f3rios de MFA. Isso \u00e9 interpretado como aus\u00eancia de garantia de cobertura. Sem Azure AD Premium P1, n\u00e3o \u00e9 poss\u00edvel sequer confirmar quantos usu\u00e1rios possuem MFA habilitado.\n- **Conditional Access:** N\u00e3o dispon\u00edvel no plano Free \u2014 nenhuma pol\u00edtica de Acesso Condicional pode ser criada ou aplicada.\n- **Usu\u00e1rios Privilegiados:** 2 Global Administrators identificados \u2014 `admin@MSAPTORTELLI.onmicrosoft.com` e `suporte@apmedical.com.br`. Nenhum guest com fun\u00e7\u00e3o privilegiada. O n\u00famero de Global Admins est\u00e1 dentro do razo\u00e1vel, mas sem MFA confirmado, essas contas s\u00e3o de alto risco.\n- **Guests:** Collector n\u00e3o retornou dados detalhados sobre inativos. O baseline indica 26 guests (43% da base de usu\u00e1rios identificados) \u2014 propor\u00e7\u00e3o elevada que merece aten\u00e7\u00e3o.\n- **Usu\u00e1rios de Risco (Identity Protection):** Indispon\u00edvel \u2014 requer Entra ID P2.\n\nO principal problema neste dom\u00ednio \u00e9 estrutural: o plano de licenciamento atual (Free) impossibilita qualquer pol\u00edtica de seguran\u00e7a de identidade compat\u00edvel com os requisitos do Copilot.\n\n---\n\n### Dados (SharePoint)\nScore: **2.1/5.0 \u2014 Cr\u00edtico**\n\n- **Permiss\u00f5es de Compartilhamento:** Configurado como `externalUserSharingOnly` \u2014 links an\u00f4nimos desabilitados. Este \u00e9 o \u00fanico pr\u00e9-requisito de dados atendido. Risco de compartilhamento externo ainda existe (usu\u00e1rios externos podem ser adicionados a sites), mas links p\u00fablicos sem autentica\u00e7\u00e3o est\u00e3o bloqueados.\n- **Ownership:** 3 sites sem nenhum respons\u00e1vel definido: \"Unimed A\", \"LICITA\u00c7\u00d5ES\" e \"Hosptial\". 13% dos grupos M365 t\u00eam problema de ownership. Sites sem dono s\u00e3o invis\u00edveis para o processo de revis\u00e3o de acesso.\n- **Conte\u00fado Obsoleto (Stale):** **91% dos 34 sites sem atividade h\u00e1 mais de 180 dias** (31 de 34). A grande maioria dos sites n\u00e3o tem atividade desde 2021 \u2014 h\u00e1 mais de 4 anos. Apenas 3 sites est\u00e3o ativos. O Copilot indexar\u00e1 todo esse conte\u00fado desatualizado, incluindo documentos vencidos (certid\u00f5es, balan\u00e7os de 2015-2017, CNHs), gerando respostas imprecisas.\n- **Storage:** 60,7 GB utilizados. O site \"Intranet\" concentra praticamente todo o armazenamento (60,7 GB de 61,2 GB totais \u2014 99% do storage em um \u00fanico site). Top 20% dos sites concentram 100% do armazenamento \u2014 indica aus\u00eancia total de governan\u00e7a de dados.\n- **Arquivos:** 828 arquivos amostrados em 5 sites \u2014 100% deles sem modifica\u00e7\u00e3o h\u00e1 mais de 12 meses. 30 grupos de duplicatas identificados, com ~101 MB desperdi\u00e7ados na amostra. Arquivos como balan\u00e7os de 2015, CNHs e certid\u00f5es vencidas est\u00e3o ativamente armazenados e ser\u00e3o indexados pelo Copilot.\n\n---\n\n### Governan\u00e7a (Purview)\nScore: **2.0/5.0 \u2014 Cr\u00edtico**\n\n- **Sensitivity Labels:** Collector retornou `unavailable` \u2014 o tenant n\u00e3o possui licenciamento Purview ou a permiss\u00e3o necess\u00e1ria n\u00e3o foi concedida. Na pr\u00e1tica: **zero labels de sensibilidade configurados**. O Copilot operar\u00e1 sem nenhum esquema de classifica\u00e7\u00e3o de informa\u00e7\u00e3o.\n- **DLP (Data Loss Prevention):** Collector n\u00e3o retornou dados. Sem DLP, n\u00e3o h\u00e1 pol\u00edticas que impe\u00e7am o Copilot de expor dados sens\u00edveis em respostas ou exporta\u00e7\u00f5es.\n- **Audit Log:** Funcionando e com eventos recentes. \u00daltimos 30 dias: 20 eventos registrados (7 UserManagement, 10 GroupManagement, 3 ApplicationManagement). Atividade mais recente em 05/05/2026. Este \u00e9 o \u00fanico ponto positivo da governan\u00e7a \u2014 h\u00e1 rastreabilidade de a\u00e7\u00f5es administrativas.\n- **Retention Labels:** Collector n\u00e3o retornou dados. Sem pol\u00edticas de reten\u00e7\u00e3o, n\u00e3o h\u00e1 ciclo de vida definido para os documentos \u2014 incluindo os milhares de arquivos obsoletos identificados no SharePoint.\n\n---\n\n### Seguran\u00e7a de Email\nScore: **2.1/5.0 \u2014 Aten\u00e7\u00e3o**\nDom\u00ednio verificado: **apmedical.com.br**\n\n- **SPF:** Presente e bem configurado. Qualificador `-all` (hard fail) \u2014 correto.\n- **DKIM:** **N\u00e3o configurado**. Seletores `selector1` e `selector2` ausentes no DNS do dom\u00ednio. Emails do Exchange Online n\u00e3o s\u00e3o assinados digitalmente, tornando-os vulner\u00e1veis a spoofing.\n- **DMARC:** **Ausente**. Nenhum registro DMARC publicado para `apmedical.com.br`. Sem DMARC, n\u00e3o h\u00e1 pol\u00edtica de tratamento para emails que falham SPF ou DKIM, e nenhum mecanismo de relat\u00f3rio de falhas est\u00e1 ativo.\n\nA combina\u00e7\u00e3o de DKIM ausente + DMARC ausente significa que emails enviados em nome de `@apmedical.com.br` n\u00e3o podem ser validados por destinat\u00e1rios, tornando o dom\u00ednio suscet\u00edvel a phishing e comprometimento de identidade.\n\n---\n\n### Ado\u00e7\u00e3o M365 (Baseline)\nScore: **2.9/5.0 \u2014 Aten\u00e7\u00e3o**\n\n**Licenciamento:**\n- 32 licen\u00e7as pagas, todas atribu\u00eddas (0 ociosas)\n- Microsoft 365 Business Standard: 25 licen\u00e7as\n- Microsoft 365 Business Basic: 5 licen\u00e7as\n- Power BI Pro: 1 licen\u00e7a\n- Teams Premium: 1 licen\u00e7a\n- Entra ID Tier: **Free** (sem P1 ou P2)\n\n**Ado\u00e7\u00e3o por servi\u00e7o (\u00faltimos 30 dias):**\n- Exchange (email): **83%** \u2014 25 usu\u00e1rios ativos\n- Teams: **67%** \u2014 20 usu\u00e1rios ativos\n- OneDrive: **63%** \u2014 19 usu\u00e1rios ativos\n- SharePoint: **43%** \u2014 13 usu\u00e1rios ativos\n- Ado\u00e7\u00e3o geral M365 consolidada: n\u00e3o dispon\u00edvel neste assessment (limita\u00e7\u00e3o do collector)\n\n**Perfil de usu\u00e1rios:**\n- 61 usu\u00e1rios no diret\u00f3rio: 35 membros, 26 guests, 2 desabilitados\n- 33 usu\u00e1rios ativos (54% do total)\n- Propor\u00e7\u00e3o de guests: **43%** \u2014 muito elevada para o porte da organiza\u00e7\u00e3o\n\nA ado\u00e7\u00e3o de email e Teams \u00e9 razo\u00e1vel, mas SharePoint (43%) indica que a plataforma de dados que o Copilot ir\u00e1 indexar \u00e9 pouco utilizada e pouco governada.\n\n---\n\n## Roadmap de Remedia\u00e7\u00e3o\n\n### Fase 1 \u2014 Imediato (antes de ativar o Copilot)\n\n**1. Verificar e ativar Entra ID Premium P1**\n- **O qu\u00ea:** O tenant possui 25 licen\u00e7as de Microsoft 365 Business Premium \u2014 verificar se o Entra ID P1 (incluso no Business Premium) j\u00e1 est\u00e1 ativo. Se n\u00e3o, ativar imediatamente.\n- **Por qu\u00ea:** Habilita MFA por Conditional Access, relat\u00f3rios de autentica\u00e7\u00e3o e bloqueio de autentica\u00e7\u00e3o legada. Sem P1, os itens 2 e 3 desta fase s\u00e3o imposs\u00edveis de implementar.\n- **Esfor\u00e7o:** Baixo a m\u00e9dio (verifica\u00e7\u00e3o + ativa\u00e7\u00e3o no portal)\n- **Refer\u00eancia:** https://learn.microsoft.com/en-us/entra/fundamentals/whatis\n\n**2. Habilitar e enfor\u00e7ar MFA para todos os usu\u00e1rios**\n- **O qu\u00ea:** Criar pol\u00edticas de Conditional Access com MFA obrigat\u00f3rio para todos os usu\u00e1rios.\n- **Por qu\u00ea:** Sem MFA, qualquer credencial vazada concede acesso total ao ambiente e aos dados que o Copilot indexa. \u00c9 o bloqueador cr\u00edtico #1.\n- **Esfor\u00e7o:** Alto (configura\u00e7\u00e3o de CA + treinamento de usu\u00e1rios)\n- **Refer\u00eancia:** https://learn.microsoft.com/en-us/entra/identity/conditional-access/howto-conditional-access-policy-all-users-mfa\n\n**3. Ativar Conditional Access com pol\u00edticas base**\n- **O qu\u00ea:** Al\u00e9m do MFA, implementar: bloqueio de autentica\u00e7\u00e3o legada, exig\u00eancia de dispositivo compliant para acesso a dados sens\u00edveis.\n- **Por qu\u00ea:** CA \u00e9 o segundo bloqueador do Copilot e \u00e9 o mecanismo de controle de acesso mais efetivo do M365.\n- **Esfor\u00e7o:** Alto (requer P1 e mapeamento de aplica\u00e7\u00f5es legadas)\n- **Refer\u00eancia:** https://learn.microsoft.com/en-us/entra/identity/conditional-access/plan-conditional-access\n\n**4. Configurar Sensitivity Labels b\u00e1sicos**\n- **O qu\u00ea:** Criar ao menos 3 labels: P\u00fablico, Interno, Confidencial. Aplicar manualmente aos documentos mais cr\u00edticos. Requer Microsoft Purview Information Protection (incluso no Business Premium).\n- **Por qu\u00ea:** Sem labels, o Copilot n\u00e3o diferencia dados. \u00c9 o terceiro bloqueador de alto impacto.\n- **Esfor\u00e7o:** M\u00e9dio (configura\u00e7\u00e3o no Compliance Portal)\n- **Refer\u00eancia:** https://learn.microsoft.com/en-us/purview/sensitivity-labels\n\n**5. Publicar DMARC para apmedical.com.br**\n- **O qu\u00ea:** Publicar registro TXT `_dmarc.apmedical.com.br` com `p=none; rua=mailto:dmarc@apmedical.com.br` para monitoramento inicial.\n- **Por qu\u00ea:** Sem DMARC, o dom\u00ednio pode ser impersonado para phishing direcionado a usu\u00e1rios Copilot.\n- **Esfor\u00e7o:** Baixo (altera\u00e7\u00e3o de DNS \u2014 30 minutos)\n- **Refer\u00eancia:** https://learn.microsoft.com/en-us/microsoft-365/security/office-365-security/email-authentication-dmarc-configure\n\n---\n\n### Fase 2 \u2014 Curto prazo (primeiras 4 semanas)\n\n**6. Configurar DKIM para o Exchange Online**\n- **O qu\u00ea:** Habilitar DKIM no Exchange Admin Center e publicar registros CNAME no DNS de apmedical.com.br.\n- **Por qu\u00ea:** Complementa o SPF (j\u00e1 correto) e \u00e9 pr\u00e9-requisito para DMARC em modo quarantine/reject.\n- **Esfor\u00e7o:** Baixo\n\n**7. Atribuir owners para os 3 sites sem respons\u00e1vel**\n- **O qu\u00ea:** Definir respons\u00e1veis para \"Unimed A\", \"LICITA\u00c7\u00d5ES\" e \"Hosptial\".\n- **Por qu\u00ea:** Sites sem owner n\u00e3o t\u00eam ponto de contato para revis\u00e3o de acesso ou incidentes.\n- **Esfor\u00e7o:** Baixo\n\n**8. Revisar e higienizar a base de sites SharePoint**\n- **O qu\u00ea:** Para os 31 sites inativos: arquivar, deletar ou reassociar ownership. Priorizar os mais antigos (\u00faltima atividade: 2021).\n- **Por qu\u00ea:** 91% de conte\u00fado obsoleto indexado pelo Copilot gera respostas desatualizadas.\n- **Esfor\u00e7o:** M\u00e9dio\n\n**9. Evoluir DMARC para p=quarantine**\n- **O qu\u00ea:** Ap\u00f3s 2 semanas monitorando os relat\u00f3rios DMARC, elevar a pol\u00edtica para `p=quarantine`.\n- **Esfor\u00e7o:** Baixo\n\n---\n\n### Fase 3 \u2014 M\u00e9dio prazo (1-3 meses)\n\n**10. Implementar pol\u00edticas de DLP**\n- **O qu\u00ea:** Criar pol\u00edticas de DLP no Microsoft Purview para proteger dados financeiros e informa\u00e7\u00f5es sens\u00edveis.\n- **Por qu\u00ea:** DLP impede que o Copilot exponha dados sens\u00edveis em respostas sem restri\u00e7\u00e3o.\n- **Esfor\u00e7o:** Alto\n\n**11. Implementar Auto-labeling com Purview**\n- **O qu\u00ea:** Ap\u00f3s os labels manuais da Fase 1, configurar pol\u00edticas de auto-classifica\u00e7\u00e3o para detectar e etiquetar documentos existentes.\n- **Esfor\u00e7o:** Alto\n\n**12. Pol\u00edtica de reten\u00e7\u00e3o e ciclo de vida de documentos**\n- **O qu\u00ea:** Definir retention labels por categoria de conte\u00fado.\n- **Esfor\u00e7o:** Alto\n\n**13. Avaliar Entra ID P2 e Identity Protection**\n- **O qu\u00ea:** Avaliar upgrade para P2 para habilitar detec\u00e7\u00e3o autom\u00e1tica de usu\u00e1rios comprometidos e Conditional Access baseado em risco.\n- **Por qu\u00ea:** Especialmente relevante com 26 guests no tenant.\n- **Esfor\u00e7o:** M\u00e9dio (decis\u00e3o de licenciamento)\n\n**14. Programa de ado\u00e7\u00e3o e treinamento para Copilot**\n- **O qu\u00ea:** Capacitar usu\u00e1rios sobre uso respons\u00e1vel, limites do modelo e como interpretar respostas da IA.\n- **Esfor\u00e7o:** Alto\n\n---\n\n## Risco Residual ap\u00f3s Remedia\u00e7\u00e3o\n\nMesmo ap\u00f3s a conclus\u00e3o da Fase 1, persistem os seguintes riscos que exigem aten\u00e7\u00e3o cont\u00ednua:\n\n1. **Conte\u00fado obsoleto massivo:** Os 31 sites inativos e 827 arquivos n\u00e3o modificados h\u00e1 mais de 12 meses n\u00e3o ser\u00e3o eliminados automaticamente pela remedia\u00e7\u00e3o. A higieniza\u00e7\u00e3o de dados hist\u00f3ricos \u00e9 um trabalho de m\u00e9dio prazo \u2014 o Copilot poder\u00e1 ser ativado em modo restrito, mas o risco de respostas imprecisas baseadas em documentos de 2016-2021 persiste at\u00e9 a conclus\u00e3o da Fase 2.\n\n2. **Aus\u00eancia de DLP:** Sem pol\u00edticas de Data Loss Prevention, o Copilot pode ser usado para extrair e sumarizar informa\u00e7\u00f5es sens\u00edveis sem restri\u00e7\u00e3o. A Fase 1 reduz o risco de acesso n\u00e3o autorizado, mas n\u00e3o impede o uso inadequado por usu\u00e1rios leg\u00edtimos.\n\n3. **Alta propor\u00e7\u00e3o de guests:** 26 guests (43% do diret\u00f3rio) \u00e9 uma propor\u00e7\u00e3o at\u00edpica para o porte da organiza\u00e7\u00e3o. Sem Identity Protection (P2) e sem revis\u00e3o de acesso peri\u00f3dica, contas de guest inativas podem ser vetores de ataque. Recomenda-se auditoria manual das contas de guest antes da ativa\u00e7\u00e3o do Copilot.\n\n4. **Estrutura de dados concentrada:** 99% do storage em um \u00fanico site (Intranet) indica que eventuais problemas de permiss\u00e3o ou governan\u00e7a nesse site afetam praticamente todo o acervo acess\u00edvel pelo Copilot.\n\n---\n\n## Nota T\u00e9cnica\n\nAssessment executado via BB Assessment Platform \u2014 leitura somente de configura\u00e7\u00f5es (zero write, zero acesso a conte\u00fado).\nDados coletados via Microsoft Graph API com consentimento administrativo do tenant `fc512260-f787-455c-b89a-14d22ec0489c` (A.P.TORTELLI / apmedical.com.br).\nTenant Entra ID Tier: **Free** \u2014 collectors que requerem Premium P1 ou P2 foram marcados como `unavailable` e tratados como gap de seguran\u00e7a neste laudo.\n"}], "grading": null}], "previous_feedback": {}, "previous_outputs": {}};
+
+    // ---- State ----
+    let feedbackMap = {};  // run_id -> feedback text
+    let currentIndex = 0;
+    let visitedRuns = new Set();
+
+    // ---- Init ----
+    async function init() {
+      // Load saved feedback from server — but only if this isn't a fresh
+      // iteration (indicated by previous_feedback being present). When
+      // previous feedback exists, the feedback.json on disk is stale from
+      // the prior iteration and should not pre-fill the textareas.
+      const hasPrevious = Object.keys(EMBEDDED_DATA.previous_feedback || {}).length > 0
+        || Object.keys(EMBEDDED_DATA.previous_outputs || {}).length > 0;
+      if (!hasPrevious) {
+        try {
+          const resp = await fetch("/api/feedback");
+          const data = await resp.json();
+          if (data.reviews) {
+            for (const r of data.reviews) feedbackMap[r.run_id] = r.feedback;
+          }
+        } catch { /* first run, no feedback yet */ }
+      }
+
+      document.getElementById("skill-name").textContent = EMBEDDED_DATA.skill_name;
+      showRun(0);
+
+      // Wire up feedback auto-save
+      const textarea = document.getElementById("feedback");
+      let saveTimeout = null;
+      textarea.addEventListener("input", () => {
+        clearTimeout(saveTimeout);
+        document.getElementById("feedback-status").textContent = "";
+        saveTimeout = setTimeout(() => saveCurrentFeedback(), 800);
+      });
+    }
+
+    // ---- Navigation ----
+    function navigate(delta) {
+      const newIndex = currentIndex + delta;
+      if (newIndex >= 0 && newIndex < EMBEDDED_DATA.runs.length) {
+        saveCurrentFeedback();
+        showRun(newIndex);
+      }
+    }
+
+    function updateNavButtons() {
+      document.getElementById("prev-btn").disabled = currentIndex === 0;
+      document.getElementById("next-btn").disabled =
+        currentIndex === EMBEDDED_DATA.runs.length - 1;
+    }
+
+    // ---- Show a run ----
+    function showRun(index) {
+      currentIndex = index;
+      const run = EMBEDDED_DATA.runs[index];
+
+      // Progress
+      document.getElementById("progress").textContent =
+        `${index + 1} of ${EMBEDDED_DATA.runs.length}`;
+
+      // Prompt
+      document.getElementById("prompt-text").textContent = run.prompt;
+
+      // Config badge
+      const badge = document.getElementById("config-badge");
+      const configMatch = run.id.match(/(with_skill|without_skill|new_skill|old_skill)/);
+      if (configMatch) {
+        const config = configMatch[1];
+        const isBaseline = config === "without_skill" || config === "old_skill";
+        badge.textContent = config.replace(/_/g, " ");
+        badge.className = "config-badge " + (isBaseline ? "config-baseline" : "config-primary");
+        badge.style.display = "inline-block";
+      } else {
+        badge.style.display = "none";
+      }
+
+      // Outputs
+      renderOutputs(run);
+
+      // Previous outputs
+      renderPrevOutputs(run);
+
+      // Grades
+      renderGrades(run);
+
+      // Previous feedback
+      const prevFb = (EMBEDDED_DATA.previous_feedback || {})[run.id];
+      const prevEl = document.getElementById("prev-feedback");
+      if (prevFb) {
+        document.getElementById("prev-feedback-text").textContent = prevFb;
+        prevEl.style.display = "block";
+      } else {
+        prevEl.style.display = "none";
+      }
+
+      // Feedback
+      document.getElementById("feedback").value = feedbackMap[run.id] || "";
+      document.getElementById("feedback-status").textContent = "";
+
+      updateNavButtons();
+
+      // Track visited runs and promote done button when all visited
+      visitedRuns.add(index);
+      const doneBtn = document.getElementById("done-btn");
+      if (visitedRuns.size >= EMBEDDED_DATA.runs.length) {
+        doneBtn.classList.add("ready");
+      }
+
+      // Scroll main content to top
+      document.querySelector(".main").scrollTop = 0;
+    }
+
+    // ---- Render outputs ----
+    function renderOutputs(run) {
+      const container = document.getElementById("outputs-body");
+      container.innerHTML = "";
+
+      const outputs = run.outputs || [];
+      if (outputs.length === 0) {
+        container.innerHTML = '<div class="empty-state">No output files</div>';
+        return;
+      }
+
+      for (const file of outputs) {
+        const fileDiv = document.createElement("div");
+        fileDiv.className = "output-file";
+
+        // Always show file header with download link
+        const header = document.createElement("div");
+        header.className = "output-file-header";
+        const nameSpan = document.createElement("span");
+        nameSpan.textContent = file.name;
+        header.appendChild(nameSpan);
+        const dlBtn = document.createElement("a");
+        dlBtn.className = "dl-btn";
+        dlBtn.textContent = "Download";
+        dlBtn.download = file.name;
+        dlBtn.href = getDownloadUri(file);
+        header.appendChild(dlBtn);
+        fileDiv.appendChild(header);
+
+        const content = document.createElement("div");
+        content.className = "output-file-content";
+
+        if (file.type === "text") {
+          const pre = document.createElement("pre");
+          pre.textContent = file.content;
+          content.appendChild(pre);
+        } else if (file.type === "image") {
+          const img = document.createElement("img");
+          img.src = file.data_uri;
+          img.alt = file.name;
+          content.appendChild(img);
+        } else if (file.type === "pdf") {
+          const iframe = document.createElement("iframe");
+          iframe.src = file.data_uri;
+          content.appendChild(iframe);
+        } else if (file.type === "xlsx") {
+          renderXlsx(content, file.data_b64);
+        } else if (file.type === "binary") {
+          const a = document.createElement("a");
+          a.className = "download-link";
+          a.href = file.data_uri;
+          a.download = file.name;
+          a.textContent = "Download " + file.name;
+          content.appendChild(a);
+        } else if (file.type === "error") {
+          const pre = document.createElement("pre");
+          pre.textContent = file.content;
+          pre.style.color = "var(--red)";
+          content.appendChild(pre);
+        }
+
+        fileDiv.appendChild(content);
+        container.appendChild(fileDiv);
+      }
+    }
+
+    // ---- XLSX rendering via SheetJS ----
+    function renderXlsx(container, b64Data) {
+      try {
+        const raw = Uint8Array.from(atob(b64Data), c => c.charCodeAt(0));
+        const wb = XLSX.read(raw, { type: "array" });
+
+        for (let i = 0; i < wb.SheetNames.length; i++) {
+          const sheetName = wb.SheetNames[i];
+          const ws = wb.Sheets[sheetName];
+
+          if (wb.SheetNames.length > 1) {
+            const sheetLabel = document.createElement("div");
+            sheetLabel.style.cssText =
+              "font-weight:600; font-size:0.8rem; color:#b0aea5; margin-top:0.5rem; margin-bottom:0.25rem;";
+            sheetLabel.textContent = "Sheet: " + sheetName;
+            container.appendChild(sheetLabel);
+          }
+
+          const htmlStr = XLSX.utils.sheet_to_html(ws, { editable: false });
+          const wrapper = document.createElement("div");
+          wrapper.innerHTML = htmlStr;
+          container.appendChild(wrapper);
+        }
+      } catch (err) {
+        container.textContent = "Error rendering spreadsheet: " + err.message;
+      }
+    }
+
+    // ---- Grades ----
+    function renderGrades(run) {
+      const section = document.getElementById("grades-section");
+      const content = document.getElementById("grades-content");
+
+      if (!run.grading) {
+        section.style.display = "none";
+        return;
+      }
+
+      const grading = run.grading;
+      section.style.display = "block";
+      // Reset to collapsed
+      content.classList.remove("open");
+      document.getElementById("grades-arrow").classList.remove("open");
+
+      const summary = grading.summary || {};
+      const expectations = grading.expectations || [];
+
+      let html = '<div style="padding: 1rem;">';
+
+      // Summary line
+      const passRate = summary.pass_rate != null
+        ? Math.round(summary.pass_rate * 100) + "%"
+        : "?";
+      const badgeClass = summary.pass_rate >= 0.8 ? "grade-pass" : summary.pass_rate >= 0.5 ? "" : "grade-fail";
+      html += '<div class="grades-summary">';
+      html += '<span class="grade-badge ' + badgeClass + '">' + passRate + '</span>';
+      html += '<span>' + (summary.passed || 0) + ' passed, ' + (summary.failed || 0) + ' failed of ' + (summary.total || 0) + '</span>';
+      html += '</div>';
+
+      // Assertions list
+      html += '<ul class="assertion-list">';
+      for (const exp of expectations) {
+        const statusClass = exp.passed ? "pass" : "fail";
+        const statusIcon = exp.passed ? "\u2713" : "\u2717";
+        html += '<li class="assertion-item">';
+        html += '<span class="assertion-status ' + statusClass + '">' + statusIcon + '</span>';
+        html += '<span>' + escapeHtml(exp.text) + '</span>';
+        if (exp.evidence) {
+          html += '<div class="assertion-evidence">' + escapeHtml(exp.evidence) + '</div>';
+        }
+        html += '</li>';
+      }
+      html += '</ul>';
+
+      html += '</div>';
+      content.innerHTML = html;
+    }
+
+    function toggleGrades() {
+      const content = document.getElementById("grades-content");
+      const arrow = document.getElementById("grades-arrow");
+      content.classList.toggle("open");
+      arrow.classList.toggle("open");
+    }
+
+    // ---- Previous outputs (collapsible) ----
+    function renderPrevOutputs(run) {
+      const section = document.getElementById("prev-outputs-section");
+      const content = document.getElementById("prev-outputs-content");
+      const prevOutputs = (EMBEDDED_DATA.previous_outputs || {})[run.id];
+
+      if (!prevOutputs || prevOutputs.length === 0) {
+        section.style.display = "none";
+        return;
+      }
+
+      section.style.display = "block";
+      // Reset to collapsed
+      content.classList.remove("open");
+      document.getElementById("prev-outputs-arrow").classList.remove("open");
+
+      // Render the files into the content area
+      content.innerHTML = "";
+      const wrapper = document.createElement("div");
+      wrapper.style.padding = "1rem";
+
+      for (const file of prevOutputs) {
+        const fileDiv = document.createElement("div");
+        fileDiv.className = "output-file";
+
+        const header = document.createElement("div");
+        header.className = "output-file-header";
+        const nameSpan = document.createElement("span");
+        nameSpan.textContent = file.name;
+        header.appendChild(nameSpan);
+        const dlBtn = document.createElement("a");
+        dlBtn.className = "dl-btn";
+        dlBtn.textContent = "Download";
+        dlBtn.download = file.name;
+        dlBtn.href = getDownloadUri(file);
+        header.appendChild(dlBtn);
+        fileDiv.appendChild(header);
+
+        const fc = document.createElement("div");
+        fc.className = "output-file-content";
+
+        if (file.type === "text") {
+          const pre = document.createElement("pre");
+          pre.textContent = file.content;
+          fc.appendChild(pre);
+        } else if (file.type === "image") {
+          const img = document.createElement("img");
+          img.src = file.data_uri;
+          img.alt = file.name;
+          fc.appendChild(img);
+        } else if (file.type === "pdf") {
+          const iframe = document.createElement("iframe");
+          iframe.src = file.data_uri;
+          fc.appendChild(iframe);
+        } else if (file.type === "xlsx") {
+          renderXlsx(fc, file.data_b64);
+        } else if (file.type === "binary") {
+          const a = document.createElement("a");
+          a.className = "download-link";
+          a.href = file.data_uri;
+          a.download = file.name;
+          a.textContent = "Download " + file.name;
+          fc.appendChild(a);
+        }
+
+        fileDiv.appendChild(fc);
+        wrapper.appendChild(fileDiv);
+      }
+
+      content.appendChild(wrapper);
+    }
+
+    function togglePrevOutputs() {
+      const content = document.getElementById("prev-outputs-content");
+      const arrow = document.getElementById("prev-outputs-arrow");
+      content.classList.toggle("open");
+      arrow.classList.toggle("open");
+    }
+
+    // ---- Feedback (saved to server -> feedback.json) ----
+    function saveCurrentFeedback() {
+      const run = EMBEDDED_DATA.runs[currentIndex];
+      const text = document.getElementById("feedback").value;
+
+      if (text.trim() === "") {
+        delete feedbackMap[run.id];
+      } else {
+        feedbackMap[run.id] = text;
+      }
+
+      // Build reviews array from map
+      const reviews = [];
+      for (const [run_id, feedback] of Object.entries(feedbackMap)) {
+        if (feedback.trim()) {
+          reviews.push({ run_id, feedback, timestamp: new Date().toISOString() });
+        }
+      }
+
+      fetch("/api/feedback", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ reviews, status: "in_progress" }),
+      }).then(() => {
+        document.getElementById("feedback-status").textContent = "Saved";
+      }).catch(() => {
+        // Static mode or server unavailable — no-op on auto-save,
+        // feedback will be downloaded on final submit
+        document.getElementById("feedback-status").textContent = "Will download on submit";
+      });
+    }
+
+    // ---- Done ----
+    function showDoneDialog() {
+      // Save current textarea to feedbackMap (but don't POST yet)
+      const run = EMBEDDED_DATA.runs[currentIndex];
+      const text = document.getElementById("feedback").value;
+      if (text.trim() === "") {
+        delete feedbackMap[run.id];
+      } else {
+        feedbackMap[run.id] = text;
+      }
+
+      // POST once with status: complete — include ALL runs so the model
+      // can distinguish "no feedback" (looks good) from "not reviewed"
+      const reviews = [];
+      const ts = new Date().toISOString();
+      for (const r of EMBEDDED_DATA.runs) {
+        reviews.push({ run_id: r.id, feedback: feedbackMap[r.id] || "", timestamp: ts });
+      }
+      const payload = JSON.stringify({ reviews, status: "complete" }, null, 2);
+      fetch("/api/feedback", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: payload,
+      }).then(() => {
+        document.getElementById("done-overlay").classList.add("visible");
+      }).catch(() => {
+        // Server not available (static mode) — download as file
+        const blob = new Blob([payload], { type: "application/json" });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = "feedback.json";
+        a.click();
+        URL.revokeObjectURL(url);
+        document.getElementById("done-overlay").classList.add("visible");
+      });
+    }
+
+    function closeDoneDialog() {
+      // Reset status back to in_progress
+      saveCurrentFeedback();
+      document.getElementById("done-overlay").classList.remove("visible");
+    }
+
+    // ---- Toast ----
+    function showToast(message) {
+      const toast = document.getElementById("toast");
+      toast.textContent = message;
+      toast.classList.add("visible");
+      setTimeout(() => toast.classList.remove("visible"), 2000);
+    }
+
+    // ---- Keyboard nav ----
+    document.addEventListener("keydown", (e) => {
+      // Don't capture when typing in textarea
+      if (e.target.tagName === "TEXTAREA") return;
+
+      if (e.key === "ArrowLeft" || e.key === "ArrowUp") {
+        e.preventDefault();
+        navigate(-1);
+      } else if (e.key === "ArrowRight" || e.key === "ArrowDown") {
+        e.preventDefault();
+        navigate(1);
+      }
+    });
+
+    // ---- Util ----
+    function getDownloadUri(file) {
+      if (file.data_uri) return file.data_uri;
+      if (file.data_b64) return "data:application/octet-stream;base64," + file.data_b64;
+      if (file.type === "text") return "data:text/plain;charset=utf-8," + encodeURIComponent(file.content);
+      return "#";
+    }
+
+    function escapeHtml(text) {
+      const div = document.createElement("div");
+      div.textContent = text;
+      return div.innerHTML;
+    }
+
+    // ---- View switching ----
+    function switchView(view) {
+      document.querySelectorAll(".view-tab").forEach(t => t.classList.remove("active"));
+      document.querySelectorAll(".view-panel").forEach(p => p.classList.remove("active"));
+      document.querySelector(`[onclick="switchView('${view}')"]`).classList.add("active");
+      document.getElementById("panel-" + view).classList.add("active");
+    }
+
+    // ---- Benchmark rendering ----
+    function renderBenchmark() {
+      const data = EMBEDDED_DATA.benchmark;
+      if (!data) return;
+
+      // Show the tabs
+      document.getElementById("view-tabs").style.display = "flex";
+
+      const container = document.getElementById("benchmark-content");
+      const summary = data.run_summary || {};
+      const metadata = data.metadata || {};
+      const notes = data.notes || [];
+
+      let html = "";
+
+      // Header
+      html += "<h2 style='font-family: Poppins, sans-serif; margin-bottom: 0.5rem;'>Benchmark Results</h2>";
+      html += "<p style='color: var(--text-muted); font-size: 0.875rem; margin-bottom: 1.25rem;'>";
+      if (metadata.skill_name) html += "<strong>" + escapeHtml(metadata.skill_name) + "</strong> &mdash; ";
+      if (metadata.timestamp) html += metadata.timestamp + " &mdash; ";
+      if (metadata.evals_run) html += "Evals: " + metadata.evals_run.join(", ") + " &mdash; ";
+      html += (metadata.runs_per_configuration || "?") + " runs per configuration";
+      html += "</p>";
+
+      // Summary table
+      html += '<table class="benchmark-table">';
+
+      function fmtStat(stat, pct) {
+        if (!stat) return "—";
+        const suffix = pct ? "%" : "";
+        const m = pct ? (stat.mean * 100).toFixed(0) : stat.mean.toFixed(1);
+        const s = pct ? (stat.stddev * 100).toFixed(0) : stat.stddev.toFixed(1);
+        return m + suffix + " ± " + s + suffix;
+      }
+
+      function deltaClass(val) {
+        if (!val) return "";
+        const n = parseFloat(val);
+        if (n > 0) return "benchmark-delta-positive";
+        if (n < 0) return "benchmark-delta-negative";
+        return "";
+      }
+
+      // Discover config names dynamically (everything except "delta")
+      const configs = Object.keys(summary).filter(k => k !== "delta");
+      const configA = configs[0] || "config_a";
+      const configB = configs[1] || "config_b";
+      const labelA = configA.replace(/_/g, " ").replace(/\b\w/g, c => c.toUpperCase());
+      const labelB = configB.replace(/_/g, " ").replace(/\b\w/g, c => c.toUpperCase());
+      const a = summary[configA] || {};
+      const b = summary[configB] || {};
+      const delta = summary.delta || {};
+
+      html += "<thead><tr><th>Metric</th><th>" + escapeHtml(labelA) + "</th><th>" + escapeHtml(labelB) + "</th><th>Delta</th></tr></thead>";
+      html += "<tbody>";
+
+      html += "<tr><td><strong>Pass Rate</strong></td>";
+      html += "<td>" + fmtStat(a.pass_rate, true) + "</td>";
+      html += "<td>" + fmtStat(b.pass_rate, true) + "</td>";
+      html += '<td class="' + deltaClass(delta.pass_rate) + '">' + (delta.pass_rate || "—") + "</td></tr>";
+
+      // Time (only show row if data exists)
+      if (a.time_seconds || b.time_seconds) {
+        html += "<tr><td><strong>Time (s)</strong></td>";
+        html += "<td>" + fmtStat(a.time_seconds, false) + "</td>";
+        html += "<td>" + fmtStat(b.time_seconds, false) + "</td>";
+        html += '<td class="' + deltaClass(delta.time_seconds) + '">' + (delta.time_seconds ? delta.time_seconds + "s" : "—") + "</td></tr>";
+      }
+
+      // Tokens (only show row if data exists)
+      if (a.tokens || b.tokens) {
+        html += "<tr><td><strong>Tokens</strong></td>";
+        html += "<td>" + fmtStat(a.tokens, false) + "</td>";
+        html += "<td>" + fmtStat(b.tokens, false) + "</td>";
+        html += '<td class="' + deltaClass(delta.tokens) + '">' + (delta.tokens || "—") + "</td></tr>";
+      }
+
+      html += "</tbody></table>";
+
+      // Per-eval breakdown (if runs data available)
+      const runs = data.runs || [];
+      if (runs.length > 0) {
+        const evalIds = [...new Set(runs.map(r => r.eval_id))].sort((a, b) => a - b);
+
+        html += "<h3 style='font-family: Poppins, sans-serif; margin-bottom: 0.75rem;'>Per-Eval Breakdown</h3>";
+
+        const hasTime = runs.some(r => r.result && r.result.time_seconds != null);
+        const hasErrors = runs.some(r => r.result && r.result.errors > 0);
+
+        for (const evalId of evalIds) {
+          const evalRuns = runs.filter(r => r.eval_id === evalId);
+          const evalName = evalRuns[0] && evalRuns[0].eval_name ? evalRuns[0].eval_name : "Eval " + evalId;
+
+          html += "<h4 style='font-family: Poppins, sans-serif; margin: 1rem 0 0.5rem; color: var(--text);'>" + escapeHtml(evalName) + "</h4>";
+          html += '<table class="benchmark-table">';
+          html += "<thead><tr><th>Config</th><th>Run</th><th>Pass Rate</th>";
+          if (hasTime) html += "<th>Time (s)</th>";
+          if (hasErrors) html += "<th>Crashes During Execution</th>";
+          html += "</tr></thead>";
+          html += "<tbody>";
+
+          // Group by config and render with average rows
+          const configGroups = [...new Set(evalRuns.map(r => r.configuration))];
+          for (let ci = 0; ci < configGroups.length; ci++) {
+            const config = configGroups[ci];
+            const configRuns = evalRuns.filter(r => r.configuration === config);
+            if (configRuns.length === 0) continue;
+
+            const rowClass = ci === 0 ? "benchmark-row-with" : "benchmark-row-without";
+            const configLabel = config.replace(/_/g, " ").replace(/\b\w/g, c => c.toUpperCase());
+
+            for (const run of configRuns) {
+              const r = run.result || {};
+              const prClass = r.pass_rate >= 0.8 ? "benchmark-delta-positive" : r.pass_rate < 0.5 ? "benchmark-delta-negative" : "";
+              html += '<tr class="' + rowClass + '">';
+              html += "<td>" + configLabel + "</td>";
+              html += "<td>" + run.run_number + "</td>";
+              html += '<td class="' + prClass + '">' + ((r.pass_rate || 0) * 100).toFixed(0) + "% (" + (r.passed || 0) + "/" + (r.total || 0) + ")</td>";
+              if (hasTime) html += "<td>" + (r.time_seconds != null ? r.time_seconds.toFixed(1) : "—") + "</td>";
+              if (hasErrors) html += "<td>" + (r.errors || 0) + "</td>";
+              html += "</tr>";
+            }
+
+            // Average row
+            const rates = configRuns.map(r => (r.result || {}).pass_rate || 0);
+            const avgRate = rates.reduce((a, b) => a + b, 0) / rates.length;
+            const avgPrClass = avgRate >= 0.8 ? "benchmark-delta-positive" : avgRate < 0.5 ? "benchmark-delta-negative" : "";
+            html += '<tr class="benchmark-row-avg ' + rowClass + '">';
+            html += "<td>" + configLabel + "</td>";
+            html += "<td>Avg</td>";
+            html += '<td class="' + avgPrClass + '">' + (avgRate * 100).toFixed(0) + "%</td>";
+            if (hasTime) {
+              const times = configRuns.map(r => (r.result || {}).time_seconds).filter(t => t != null);
+              html += "<td>" + (times.length ? (times.reduce((a, b) => a + b, 0) / times.length).toFixed(1) : "—") + "</td>";
+            }
+            if (hasErrors) html += "<td></td>";
+            html += "</tr>";
+          }
+          html += "</tbody></table>";
+
+          // Per-assertion detail for this eval
+          const runsWithExpectations = {};
+          for (const config of configGroups) {
+            runsWithExpectations[config] = evalRuns.filter(r => r.configuration === config && r.expectations && r.expectations.length > 0);
+          }
+          const hasAnyExpectations = Object.values(runsWithExpectations).some(runs => runs.length > 0);
+          if (hasAnyExpectations) {
+            // Collect all unique assertion texts across all configs
+            const allAssertions = [];
+            const seen = new Set();
+            for (const config of configGroups) {
+              for (const run of runsWithExpectations[config]) {
+                for (const exp of (run.expectations || [])) {
+                  if (!seen.has(exp.text)) {
+                    seen.add(exp.text);
+                    allAssertions.push(exp.text);
+                  }
+                }
+              }
+            }
+
+            html += '<table class="benchmark-table" style="margin-top: 0.5rem;">';
+            html += "<thead><tr><th>Assertion</th>";
+            for (const config of configGroups) {
+              const label = config.replace(/_/g, " ").replace(/\b\w/g, c => c.toUpperCase());
+              html += "<th>" + escapeHtml(label) + "</th>";
+            }
+            html += "</tr></thead><tbody>";
+
+            for (const assertionText of allAssertions) {
+              html += "<tr><td>" + escapeHtml(assertionText) + "</td>";
+
+              for (const config of configGroups) {
+                html += "<td>";
+                for (const run of runsWithExpectations[config]) {
+                  const exp = (run.expectations || []).find(e => e.text === assertionText);
+                  if (exp) {
+                    const cls = exp.passed ? "benchmark-delta-positive" : "benchmark-delta-negative";
+                    const icon = exp.passed ? "\u2713" : "\u2717";
+                    html += '<span class="' + cls + '" title="Run ' + run.run_number + ': ' + escapeHtml(exp.evidence || "") + '">' + icon + "</span> ";
+                  } else {
+                    html += "— ";
+                  }
+                }
+                html += "</td>";
+              }
+              html += "</tr>";
+            }
+            html += "</tbody></table>";
+          }
+        }
+      }
+
+      // Notes
+      if (notes.length > 0) {
+        html += '<div class="benchmark-notes">';
+        html += "<h3>Analysis Notes</h3>";
+        html += "<ul>";
+        for (const note of notes) {
+          html += "<li>" + escapeHtml(note) + "</li>";
+        }
+        html += "</ul></div>";
+      }
+
+      container.innerHTML = html;
+    }
+
+    // ---- Start ----
+    init();
+    renderBenchmark();
+  </script>
+</body>
+</html>

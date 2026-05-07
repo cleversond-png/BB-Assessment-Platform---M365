@@ -131,6 +131,39 @@ const RULES = [
     reference: 'https://learn.microsoft.com/en-us/copilot/microsoft-365/microsoft-365-copilot-privacy',
   },
 
+  {
+    id: 'OVERSHARING_EVERYONE',
+    check: (r) => {
+      const s = r.sharePoint?.collectors?.oversharing;
+      return s && !s.unavailable && s.summary?.sitesWithEveryoneCount > 0;
+    },
+    severity: 'critical',
+    category: 'Dados',
+    finding: (r) => {
+      const count = r.sharePoint.collectors.oversharing.summary.sitesWithEveryoneCount;
+      const sampled = r.sharePoint.collectors.oversharing.summary.sitesSampled;
+      return `${count} site(s) (de ${sampled} amostrados) com permissão atribuída ao grupo "Everyone" ou "Everyone except external users" — todos os usuários do tenant têm acesso automático a esse conteúdo.`;
+    },
+    recommendation: 'Remover permissões dos grupos Everyone dos sites afetados e substituir por grupos de segurança específicos. O Copilot amplifica o oversharing interno: documentos antes "perdidos" passam a ser descobertos e entregues pela IA a qualquer colaborador que perguntar.',
+    effort: 'medium',
+    reference: 'https://learn.microsoft.com/en-us/sharepoint/manage-site-collection-administrators',
+  },
+
+  // ── SharePoint / OneDrive ─────────────────────────────────────────────────
+  {
+    id: 'ONEDRIVE_MORE_PERMISSIVE',
+    check: (r) => r.sharePoint?.collectors?.permissions?.summary?.oneDriveMorePermissive === true,
+    severity: 'high',
+    category: 'Dados',
+    finding: (r) => {
+      const { sharingCapability, oneDriveSharingCapability } = r.sharePoint.collectors.permissions.summary;
+      return `OneDrive (${oneDriveSharingCapability}) configurado mais permissivo que SharePoint (${sharingCapability}) — arquivos pessoais de trabalho expostos mesmo com SharePoint restrito.`;
+    },
+    recommendation: 'Alinhar as configurações de sharing do OneDrive for Business ao nível do SharePoint no SharePoint Admin Center > Policies > Sharing. Arquivos do OneDrive são fonte de contexto prioritária do Copilot.',
+    effort: 'low',
+    reference: 'https://learn.microsoft.com/en-us/sharepoint/turn-external-sharing-on-or-off',
+  },
+
   // ── SharePoint / Ownership ────────────────────────────────────────────────
   {
     id: 'OWNERSHIP_DISABLED_OWNER',
@@ -236,6 +269,129 @@ const RULES = [
     recommendation: 'Implementar política de retenção e higienização de conteúdo obsoleto. Conteúdo estagnado indexado pelo Copilot gera respostas desatualizadas e ruído nas buscas.',
     effort: 'medium',
     reference: 'https://learn.microsoft.com/en-us/microsoft-365/compliance/retention',
+  },
+
+  // ── Governança / DLP ─────────────────────────────────────────────────────
+  {
+    id: 'DLP_NO_COPILOT_POLICY',
+    check: (r) => {
+      const dlp = r.governance?.collectors?.dlp;
+      return dlp && !dlp.unavailable && (dlp.summary?.copilotDlpPoliciesCount ?? 0) === 0;
+    },
+    severity: 'high',
+    category: 'Governança',
+    finding: 'Nenhuma política DLP cobre o Copilot for Microsoft 365 — dados sensíveis processados pelo Copilot sem restrição ou bloqueio.',
+    recommendation: 'Criar política DLP no Microsoft Purview com workload "Copilot for Microsoft 365". Definir quais tipos de informação sensível (CPF, cartão, PII) o Copilot não pode processar ou exibir nas respostas.',
+    effort: 'medium',
+    reference: 'https://learn.microsoft.com/en-us/purview/dlp-microsoft365-copilot',
+  },
+
+  // ── Governança / Retenção ────────────────────────────────────────────────
+  {
+    id: 'RETENTION_NO_EXCHANGE',
+    check: (r) => {
+      const ret = r.governance?.collectors?.retentionPolicies;
+      return ret && !ret.unavailable && ret.summary?.exchangeRetentionConfigured === false;
+    },
+    severity: 'high',
+    category: 'Governança',
+    finding: 'Nenhuma política de retenção cobre o Exchange (e-mail) — mensagens não têm garantia de preservação para compliance e o Copilot pode usar contexto de e-mails que deveriam ter sido excluídos.',
+    recommendation: 'Criar política de retenção no Purview para Exchange com período mínimo definido conforme política de compliance da organização (ex: 1 ano para e-mails corporativos).',
+    effort: 'medium',
+    reference: 'https://learn.microsoft.com/en-us/purview/create-retention-policies',
+  },
+  {
+    id: 'RETENTION_NO_TEAMS',
+    check: (r) => {
+      const ret = r.governance?.collectors?.retentionPolicies;
+      return ret && !ret.unavailable && ret.summary?.teamsRetentionConfigured === false;
+    },
+    severity: 'medium',
+    category: 'Governança',
+    finding: 'Nenhuma política de retenção cobre mensagens do Teams — conversas e canais sem ciclo de vida definido.',
+    recommendation: 'Criar política de retenção no Purview para Teams (channel messages e chats). Teams é fonte primária de contexto do Copilot — sem retenção, dados históricos relevantes podem ser perdidos.',
+    effort: 'medium',
+    reference: 'https://learn.microsoft.com/en-us/purview/create-retention-policies',
+  },
+
+  // ── Identidade / Contas Inativas ─────────────────────────────────────────
+  {
+    id: 'INACTIVE_ENABLED_USERS',
+    check: (r) => {
+      const count = r.baseline?.collectors?.users?.summary?.inactiveEnabledUsersCount;
+      return count != null && count > 0;
+    },
+    severity: 'medium',
+    category: 'Identidade',
+    finding: (r) => {
+      const count = r.baseline.collectors.users.summary.inactiveEnabledUsersCount;
+      const days = r.baseline.collectors.users.summary.inactivePeriodDays;
+      return `${count} usuário(s) interno(s) habilitado(s) sem login há mais de ${days} dias — contas de ex-funcionários ou contas de serviço abandonadas.`;
+    },
+    recommendation: 'Implementar revisão periódica de contas inativas: desabilitar ou excluir contas sem atividade em 90 dias. Contas ativas comprometidas com acesso ao Copilot são vetor de exfiltração com permissões acumuladas.',
+    effort: 'medium',
+    reference: 'https://learn.microsoft.com/en-us/entra/id-governance/access-reviews-overview',
+  },
+
+  // ── Identidade / PIM ─────────────────────────────────────────────────────
+  {
+    id: 'PRIVILEGED_NO_PIM',
+    check: (r) => {
+      const s = r.entraId?.collectors?.privileged?.summary;
+      return s && s.pimAvailable === true && s.eligibleAdminCount === 0;
+    },
+    severity: 'high',
+    category: 'Identidade',
+    finding: 'Roles privilegiadas permanentes sem Privileged Identity Management (PIM) — Global Admins com acesso 24/7 são vetor de risco crítico para o Copilot.',
+    recommendation: 'Converter roles permanentes em elegíveis via PIM (Entra ID P2). Global Admin deve ser just-in-time: o administrador solicita elevação, usa a permissão com prazo limitado e ela expira automaticamente.',
+    effort: 'high',
+    reference: 'https://learn.microsoft.com/en-us/entra/id-governance/privileged-identity-management/pim-configure',
+  },
+  {
+    id: 'PRIVILEGED_PIM_UNAVAILABLE',
+    check: (r) => r.entraId?.collectors?.privileged?.summary?.pimAvailable === false,
+    severity: 'medium',
+    category: 'Identidade',
+    finding: 'Privileged Identity Management (PIM) indisponível — Entra ID P2 não licenciado. Roles privilegiadas não têm controle just-in-time.',
+    recommendation: 'Avaliar licenciamento Entra ID P2 para habilitar PIM, Identity Protection e Access Reviews. Essencial para tenants que pretendem implantar o Copilot com governança avançada.',
+    effort: 'high',
+    reference: 'https://learn.microsoft.com/en-us/entra/id-governance/privileged-identity-management/pim-configure',
+  },
+
+  // ── Adoção / M365 Apps ───────────────────────────────────────────────────
+  {
+    id: 'APPS_LOW_DESKTOP_DEPLOYMENT',
+    check: (r) => {
+      const apps = r.baseline?.collectors?.appsChannel;
+      return apps && !apps.unavailable && (apps.summary?.desktopPercent ?? 100) < 60;
+    },
+    severity: 'high',
+    category: 'Adoção',
+    finding: (r) => {
+      const { desktopPercent, totalUsers } = r.baseline.collectors.appsChannel.summary;
+      return `Apenas ${desktopPercent}% dos ${totalUsers} usuários ativos utilizam M365 Apps em desktop — Copilot requer cliente desktop (não disponível via web apenas).`;
+    },
+    recommendation: 'Garantir que usuários que precisarão do Copilot tenham M365 Apps instalado no desktop. Verificar também no Intune se as instalações estão no Current Channel ou Monthly Enterprise Channel — Semi-Annual Channel não suporta Copilot.',
+    effort: 'medium',
+    reference: 'https://learn.microsoft.com/en-us/microsoft-365/admin/misc/microsoft-365-copilot-requirements',
+  },
+
+  // ── Extensibilidade / Copilot Plugins ────────────────────────────────────
+  {
+    id: 'COPILOT_MANY_CONNECTORS',
+    check: (r) => {
+      const ext = r.governance?.collectors?.copilotExtensions;
+      return ext && !ext.unavailable && (ext.summary?.activeConnectionsCount ?? 0) > 5;
+    },
+    severity: 'medium',
+    category: 'Governança',
+    finding: (r) => {
+      const count = r.governance.collectors.copilotExtensions.summary.activeConnectionsCount;
+      return `${count} Graph Connectors ativos — o Copilot pode combinar dados de sistemas externos sem controles de privacidade específicos para IA.`;
+    },
+    recommendation: 'Revisar e documentar cada Graph Connector ativo. Verificar no Microsoft 365 Admin Center > Settings > Integrated apps se plugins de terceiros estão controlados. Definir política de aprovação para novos conectores.',
+    effort: 'medium',
+    reference: 'https://learn.microsoft.com/en-us/microsoftsearch/connectors-overview',
   },
 
   // ── Governança de Dados / Sensitivity Labels ──────────────────────────────

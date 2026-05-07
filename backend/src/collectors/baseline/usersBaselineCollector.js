@@ -1,5 +1,6 @@
 const { graphGet } = require('../../graph/graphClient');
 
+const INACTIVE_DAYS = 90;
 const EVENTUAL = { extraHeaders: { ConsistencyLevel: 'eventual' } };
 
 async function countUsers(tenantId, filter) {
@@ -9,11 +10,28 @@ async function countUsers(tenantId, filter) {
   return res['@odata.count'] || 0;
 }
 
+// Requires AuditLog.Read.All. Returns null if unavailable or filter unsupported.
+async function countInactiveEnabledUsers(tenantId) {
+  const cutoff = new Date(Date.now() - INACTIVE_DAYS * 24 * 60 * 60 * 1000).toISOString();
+  try {
+    const res = await graphGet(tenantId, '/users', {
+      '$count': 'true',
+      '$top': '1',
+      '$select': 'id',
+      '$filter': `accountEnabled eq true and signInActivity/lastSignInDateTime le ${cutoff}`,
+    }, EVENTUAL);
+    return res['@odata.count'] ?? 0;
+  } catch {
+    return null;
+  }
+}
+
 async function collectUsersBaseline(tenantId) {
-  const [total, guests, disabled] = await Promise.all([
+  const [total, guests, disabled, inactive] = await Promise.all([
     countUsers(tenantId, null),
     countUsers(tenantId, "userType eq 'Guest'"),
     countUsers(tenantId, 'accountEnabled eq false'),
+    countInactiveEnabledUsers(tenantId),
   ]);
 
   const members = total - guests;
@@ -37,6 +55,8 @@ async function collectUsersBaseline(tenantId) {
       active: members - disabled,
       guestRatioPercent: Math.round(guestRatio * 100),
       disabledRatioPercent: Math.round(disabledRatio * 100),
+      inactiveEnabledUsersCount: inactive,
+      inactivePeriodDays: INACTIVE_DAYS,
     },
   };
 }

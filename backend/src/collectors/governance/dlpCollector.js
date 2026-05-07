@@ -33,6 +33,19 @@ async function collectDlp(tenantId) {
     (p) => p.state === 'enabled' || p.mode === 'enabled' || p.isEnabled === true
   );
 
+  // Copilot for M365 requires an explicit DLP workload — generic Exchange/SharePoint
+  // policies do NOT automatically cover Copilot interactions.
+  function policyCoversWorkload(p, workload) {
+    const w = p.workload;
+    if (!w) return false;
+    const list = Array.isArray(w) ? w : String(w).split(',').map((s) => s.trim());
+    return list.some((item) => item.toLowerCase().includes(workload.toLowerCase()));
+  }
+
+  const copilotPolicies = enabledPolicies.filter(
+    (p) => policyCoversWorkload(p, 'CopilotForMicrosoft365') || policyCoversWorkload(p, 'Copilot') || policyCoversWorkload(p, 'AIApps')
+  );
+
   let score;
   if (totalPolicies === 0) score = 0;
   else if (enabledPolicies.length === 0) score = 1;
@@ -43,7 +56,7 @@ async function collectDlp(tenantId) {
 
   logger.info({
     event: 'collector_done', collector: 'dlp', tenantId,
-    totalPolicies, enabledCount: enabledPolicies.length, score,
+    totalPolicies, enabledCount: enabledPolicies.length, copilotDlpCount: copilotPolicies.length, score,
   });
 
   return {
@@ -52,6 +65,7 @@ async function collectDlp(tenantId) {
     summary: {
       totalPolicies,
       enabledPoliciesCount: enabledPolicies.length,
+      copilotDlpPoliciesCount: copilotPolicies.length,
     },
     policies: policies.slice(0, 20).map((p) => ({
       id: p.id,

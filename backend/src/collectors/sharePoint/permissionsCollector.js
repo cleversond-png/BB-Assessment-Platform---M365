@@ -34,20 +34,31 @@ async function collectPermissions(tenantId) {
   const defaultLinkType = settings.defaultSharingLinkType;
   const anonymousLinksAllowed = capability === 'externalUserAndGuestSharing';
 
+  // OneDrive can be configured independently — often more permissive than SharePoint global.
+  const oneDriveSharingCapability = settings.oneDriveForBusinessSharingCapability || null;
+  const oneDriveAnonymousLinksAllowed = oneDriveSharingCapability === 'externalUserAndGuestSharing';
+
   let score = baseScore;
   if (anonymousLinksAllowed) {
     if (anonymousLinkExpiration === 0) score = Math.max(score - 1, 0);
     else if (anonymousLinkExpiration > 30) score = Math.max(score - 0.5, 0);
   }
   if (defaultLinkType === 'anonymous') score = Math.max(score - 0.5, 0);
+  // Penalise if OneDrive is more permissive than SharePoint (asymmetric risk)
+  if (oneDriveAnonymousLinksAllowed && !anonymousLinksAllowed) score = Math.max(score - 0.5, 0);
   score = Math.round(score * 10) / 10;
+
+  const PERMISSIVENESS = { externalUserAndGuestSharing: 4, externalUserSharingOnly: 3, existingExternalUserSharingOnly: 2, disabled: 1 };
+  const oneDriveMorePermissive = oneDriveSharingCapability && capability &&
+    (PERMISSIVENESS[oneDriveSharingCapability] ?? 0) > (PERMISSIVENESS[capability] ?? 0);
 
   const risks = [];
   if (anonymousLinksAllowed) risks.push('Links anônimos habilitados no nível do tenant');
   if (anonymousLinksAllowed && anonymousLinkExpiration === 0) risks.push('Links anônimos sem expiração configurada');
   if (defaultLinkType === 'anonymous') risks.push('Link padrão de compartilhamento é anônimo');
+  if (oneDriveMorePermissive) risks.push(`OneDrive (${oneDriveSharingCapability}) mais permissivo que SharePoint (${capability})`);
 
-  logger.info({ event: 'collector_done', collector: 'permissions', tenantId, capability, score });
+  logger.info({ event: 'collector_done', collector: 'permissions', tenantId, capability, oneDriveSharingCapability, score });
 
   return {
     collector: 'permissions',
@@ -57,6 +68,9 @@ async function collectPermissions(tenantId) {
       anonymousLinksAllowed,
       anonymousLinkExpirationDays: anonymousLinkExpiration || 'none',
       defaultSharingLinkType: defaultLinkType,
+      oneDriveSharingCapability,
+      oneDriveAnonymousLinksAllowed,
+      oneDriveMorePermissive,
     },
     risks,
   };

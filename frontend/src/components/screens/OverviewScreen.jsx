@@ -101,6 +101,62 @@ function DomainCard({ id, domain, onClick }) {
   )
 }
 
+function CopilotReadinessBanner({ iaReadiness }) {
+  if (!iaReadiness) return null
+  const { copilotReady, readinessLevel, blockers = [], summary = {} } = iaReadiness
+
+  const isWarning = !copilotReady &&
+    (readinessLevel?.includes('Parcial') || readinessLevel?.includes('Moderada'))
+  const isBlocked = !copilotReady && !isWarning
+
+  let bg, fg, bd, iconName, phrase
+  if (copilotReady) {
+    bg = 'var(--ok-bg)'; fg = 'var(--ok-fg)'; bd = 'var(--ok-bd)'
+    iconName = 'sparkles'
+    phrase = 'O tenant atende os pré-requisitos técnicos para deploy do Copilot for Microsoft 365.'
+  } else if (isWarning) {
+    bg = 'var(--warn-bg)'; fg = 'var(--warn-fg)'; bd = 'var(--warn-bd)'
+    iconName = 'triangle-alert'
+    phrase = `${summary.passedCount ?? '?'}/${summary.totalChecks ?? '?'} pré-requisitos atendidos — resolva os itens pendentes antes de expandir o Copilot para toda a organização.`
+  } else {
+    bg = 'var(--sev-critical-bg)'; fg = 'var(--sev-critical-fg)'; bd = 'var(--sev-critical-bd)'
+    iconName = 'lock'
+    phrase = `${summary.criticalBlockers ?? 0} bloqueador(es) crítico(s) impedem o deploy seguro — o Copilot exporia dados sensíveis sem os controles de governança necessários.`
+  }
+
+  return (
+    <div style={{
+      display: 'flex', alignItems: 'center', gap: 14,
+      padding: '14px 20px', borderRadius: 'var(--r-xl)',
+      background: bg, border: `1px solid ${bd}`, marginBottom: 24,
+    }}>
+      <div style={{ flexShrink: 0, color: fg }}>
+        <Icon name={iconName} size={20} />
+      </div>
+      <div style={{ flex: 1, minWidth: 0 }}>
+        <span style={{ fontWeight: 700, color: fg, fontSize: 14 }}>{readinessLevel}</span>
+        <span className="t-sm" style={{ color: fg, marginLeft: 10, opacity: 0.88 }}>{phrase}</span>
+      </div>
+      {!copilotReady && blockers.length > 0 && (
+        <div style={{ flexShrink: 0, display: 'flex', gap: 6, flexWrap: 'wrap', justifyContent: 'flex-end', maxWidth: 320 }}>
+          {blockers.slice(0, 2).map(b => (
+            <span key={b.id} style={{
+              fontSize: 11, fontWeight: 600, padding: '3px 9px',
+              borderRadius: 999, background: bd, color: fg, whiteSpace: 'nowrap',
+            }}>{b.label}</span>
+          ))}
+          {blockers.length > 2 && (
+            <span style={{
+              fontSize: 11, fontWeight: 600, padding: '3px 9px',
+              borderRadius: 999, background: bd, color: fg, whiteSpace: 'nowrap',
+            }}>+{blockers.length - 2} mais</span>
+          )}
+        </div>
+      )}
+    </div>
+  )
+}
+
 function SeverityCount({ tone, count, label }) {
   const colorMap = {
     critical: 'var(--sev-critical-fg)',
@@ -140,6 +196,8 @@ export default function OverviewScreen({ result, onSelectDomain, onOpenRec }) {
           <Btn key="2" variant="secondary" size="md" icon="share">Compartilhar</Btn>,
         ]}
       />
+
+      <CopilotReadinessBanner iaReadiness={result.domains?.iaReadiness} />
 
       {/* HERO row: donut + metrics */}
       <div style={{ display: 'grid', gridTemplateColumns: '320px 1fr', gap: 24, marginBottom: 24 }}>

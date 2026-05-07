@@ -2,9 +2,10 @@ const { collectTenantInfo } = require('./tenantInfoCollector');
 const { collectLicensing } = require('./licensingCollector');
 const { collectUsersBaseline } = require('./usersBaselineCollector');
 const { collectUsage } = require('./usageCollector');
+const { collectAppsChannel } = require('./appsChannelCollector');
 const logger = require('../../logger');
 
-const COLLECTOR_WEIGHTS = { licensing: 3, users: 3, usage: 2 };
+const COLLECTOR_WEIGHTS = { licensing: 3, users: 3, usage: 2, appsChannel: 2 };
 const MAX_WEIGHT = Object.values(COLLECTOR_WEIGHTS).reduce((a, b) => a + b, 0);
 
 async function runBaselineAssessment(tenantId) {
@@ -17,6 +18,7 @@ async function runBaselineAssessment(tenantId) {
       collectLicensing(tenantId).then((r) => ({ name: 'licensing', result: r })),
       collectUsersBaseline(tenantId).then((r) => ({ name: 'users', result: r })),
       collectUsage(tenantId).then((r) => ({ name: 'usage', result: r })),
+      collectAppsChannel(tenantId).then((r) => ({ name: 'appsChannel', result: r })),
     ]),
   ]);
 

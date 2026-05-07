@@ -61,16 +61,41 @@ async function collectPrivileged(tenantId) {
     ? privilegedUsers.filter((u) => u.mfaRegistered === false).length
     : null;
 
+  // PIM check: eligible (just-in-time) vs permanent role assignments (requires Entra P2)
+  let pimAvailable = null;
+  let eligibleAdminCount = 0;
+  try {
+    const sensitiveTemplateIds = new Set(sensitiveRoles.map((r) => r.roleTemplateId).filter(Boolean));
+    const schedules = await graphGetAll(tenantId, '/roleManagement/directory/roleEligibilitySchedules', {
+      $select: 'id,roleDefinitionId,status',
+    });
+    pimAvailable = true;
+    eligibleAdminCount = schedules.filter(
+      (s) => sensitiveTemplateIds.has(s.roleDefinitionId) && s.status === 'provisioned'
+    ).length;
+  } catch (err) {
+    if (err.response?.status === 403) {
+      pimAvailable = false;
+      logger.warn({ event: 'pim_unavailable', collector: 'privileged', tenantId, reason: 'Entra P2 required' });
+    } else {
+      logger.warn({ event: 'pim_check_failed', collector: 'privileged', tenantId, error: err.message });
+    }
+  }
+
   // Score 0–5: privileged access hygiene
-  // Deduct points for over-provisioning
   let score = 5;
   if (globalAdminCount > 5) score -= 2;
   else if (globalAdminCount > 2) score -= 1;
   if (guestPrivileged.length > 0) score -= 2;
   if (adminsWithoutMfa > 0) score -= 1;
+  if (pimAvailable === true && eligibleAdminCount === 0) score -= 1;
   score = Math.max(score, 0);
 
-  logger.info({ event: 'collector_done', collector: 'privileged', tenantId, totalPrivileged: privilegedUsers.length, globalAdminCount, adminsWithoutMfa });
+  logger.info({
+    event: 'collector_done', collector: 'privileged', tenantId,
+    totalPrivileged: privilegedUsers.length, globalAdminCount, adminsWithoutMfa,
+    pimAvailable, eligibleAdminCount,
+  });
 
   return {
     collector: 'privileged',
@@ -81,6 +106,8 @@ async function collectPrivileged(tenantId) {
       guestPrivilegedCount: guestPrivileged.length,
       mfaDataAvailable: mfaByUpn !== null,
       adminsWithoutMfa,
+      pimAvailable,
+      eligibleAdminCount,
     },
     privilegedUsers,
     guestPrivileged,

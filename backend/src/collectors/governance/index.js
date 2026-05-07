@@ -1,24 +1,30 @@
 const { collectSensitivityLabels } = require('./sensitivityLabelsCollector');
 const { collectAudit } = require('./auditCollector');
+const { collectDlp } = require('./dlpCollector');
+const { collectRetentionPolicies } = require('./retentionPoliciesCollector');
+const { collectCopilotExtensions } = require('./copilotExtensionsCollector');
 const logger = require('../../logger');
 
-// Graph API limitation: DLP and Retention policies are not exposed via
-// Application permissions — only via Security & Compliance PowerShell or Purview portal.
-// Collectors and required permissions:
-//   sensitivityLabels → InformationProtectionPolicy.Read.All (already granted)
-//   audit             → AuditLog.Read.All
+// Weights for domain score calculation.
+// Uses usedWeight denominator (baseline style) so collectors that are unavailable
+// due to missing Purview/compliance licences do not penalise the domain score.
 const COLLECTOR_WEIGHTS = {
   sensitivityLabels: 6,
   audit: 4,
+  dlp: 3,
+  retentionPolicies: 2,
+  copilotExtensions: 1,
 };
-const TOTAL_WEIGHT = Object.values(COLLECTOR_WEIGHTS).reduce((a, b) => a + b, 0); // 10
 
 async function runGovernanceAssessment(tenantId) {
   logger.info({ event: 'assessment_start', domain: 'governance', tenantId });
 
   const collectors = [
-    { name: 'sensitivityLabels', fn: () => collectSensitivityLabels(tenantId) },
-    { name: 'audit',             fn: () => collectAudit(tenantId) },
+    { name: 'sensitivityLabels',  fn: () => collectSensitivityLabels(tenantId) },
+    { name: 'audit',              fn: () => collectAudit(tenantId) },
+    { name: 'dlp',                fn: () => collectDlp(tenantId) },
+    { name: 'retentionPolicies',  fn: () => collectRetentionPolicies(tenantId) },
+    { name: 'copilotExtensions',  fn: () => collectCopilotExtensions(tenantId) },
   ];
 
   const results = {};
@@ -33,14 +39,19 @@ async function runGovernanceAssessment(tenantId) {
     }
   }));
 
+  // Use usedWeight denominator: unavailable collectors do not penalise the score.
   let weightedSum = 0;
+  let usedWeight = 0;
   for (const [name, weight] of Object.entries(COLLECTOR_WEIGHTS)) {
     const r = results[name];
     if (r && typeof r.score === 'number' && !r.unavailable) {
       weightedSum += r.score * weight;
+      usedWeight += weight;
     }
   }
-  const domainScore = Math.round((weightedSum / (TOTAL_WEIGHT * 5)) * 5 * 10) / 10;
+  const domainScore = usedWeight > 0
+    ? Math.round((weightedSum / usedWeight) * 10) / 10
+    : 0;
 
   logger.info({ event: 'assessment_done', domain: 'governance', tenantId, domainScore });
 
