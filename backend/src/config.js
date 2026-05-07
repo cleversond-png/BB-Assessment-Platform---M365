@@ -2,6 +2,8 @@ require('dotenv').config();
 
 const REQUIRED_VARS = ['AZURE_CLIENT_ID', 'AZURE_CLIENT_SECRET', 'AZURE_REDIRECT_URI'];
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+// Aceita Directory ID (UUID) ou domínio inicial do tenant *.onmicrosoft.com
+const TENANT_RE = /^([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}|[a-z0-9-]+\.onmicrosoft\.com)$/i;
 
 function validateConfig() {
   const missing = REQUIRED_VARS.filter((v) => !process.env[v]);
@@ -18,6 +20,8 @@ function validateConfig() {
 
 module.exports = {
   validateConfig,
+  TENANT_RE,
+  UUID_RE,
   azure: {
     clientId: process.env.AZURE_CLIENT_ID,
     clientSecret: process.env.AZURE_CLIENT_SECRET,

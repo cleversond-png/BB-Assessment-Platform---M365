@@ -3,6 +3,7 @@ const authService = require('../auth/authService');
 const tokenStore = require('../auth/tokenStore');
 const consentStore = require('../store/consentStore');
 const resultsStore = require('../store/resultsStore');
+const { TENANT_RE } = require('../config');
 const logger = require('../logger');
 
 const router = express.Router();
@@ -16,9 +17,15 @@ router.get('/consent', (req, res) => {
     return res.status(400).json({ error: 'tenant_id is required' });
   }
 
+  if (!TENANT_RE.test(tenant_id.trim())) {
+    return res.status(400).json({
+      error: 'tenant_id inválido — use o Directory ID (UUID) ou o domínio *.onmicrosoft.com do tenant. O nome da empresa vai no campo client_name.',
+    });
+  }
+
   try {
-    const { url, state } = authService.generateConsentUrl(tenant_id);
-    consentStore.addPending(tenant_id, client_name || '', url);
+    const { url, state } = authService.generateConsentUrl(tenant_id.trim());
+    consentStore.addPending(tenant_id.trim(), client_name || '', url);
     logger.info({ event: 'consent_url_generated', tenantId: tenant_id, clientName: client_name, state });
     res.json({ consentUrl: url, state });
   } catch (err) {
@@ -41,17 +48,19 @@ router.get('/callback', async (req, res) => {
     return res.status(400).json({ error: 'Admin consent not granted' });
   }
 
-  let tenantId = authService.validateState(state);
+  // O `tenant` retornado pelo Microsoft é a fonte autoritativa do tenantId que consentiu.
+  // O valor do state é apenas o que o operador digitou — pode estar errado/diferente.
+  // Sempre que `tenant` estiver presente, usar ele para o token endpoint.
+  const originalTenantId = authService.validateState(state); // pode ser null
+  const tenantId = tenant || originalTenantId;
   if (!tenantId) {
-    // State not found in memory (server restarted, or URL was generated manually).
-    // Fall back to the tenant Microsoft returns in the callback — safe for client_credentials flow.
-    if (tenant) {
-      logger.warn({ event: 'state_not_found_using_ms_tenant', state, tenant });
-      tenantId = tenant;
-    } else {
-      logger.warn({ event: 'invalid_state_no_tenant_fallback', state });
-      return res.status(400).json({ error: 'Invalid or expired state parameter' });
-    }
+    logger.warn({ event: 'callback_no_tenant_no_state', state });
+    return res.status(400).json({ error: 'Tenant não retornado pelo Azure e state inválido' });
+  }
+  if (originalTenantId && originalTenantId !== tenantId) {
+    logger.warn({ event: 'tenant_mismatch', originalTenantId, msTenant: tenantId, state });
+    // operador digitou o tenant_id errado — limpar a entrada-fantasma do consentStore
+    try { consentStore.removeTenant(originalTenantId); } catch { /* noop */ }
   }
 
   try {

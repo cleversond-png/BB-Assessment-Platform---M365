@@ -101,6 +101,8 @@ function DeleteButton({ tenantId, onDeleted }) {
   )
 }
 
+const TENANT_RE = /^([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}|[a-z0-9-]+\.onmicrosoft\.com)$/i
+
 export default function ConsentScreen() {
   const [form, setForm] = useState({ tenantId: '', clientName: '' })
   const [generatedUrl, setGeneratedUrl] = useState(null)
@@ -109,6 +111,9 @@ export default function ConsentScreen() {
   const [tenants, setTenants] = useState([])
   const [loadingList, setLoadingList] = useState(false)
   const [permissions, setPermissions] = useState([])
+
+  const tenantTrimmed = form.tenantId.trim()
+  const tenantValid = tenantTrimmed === '' || TENANT_RE.test(tenantTrimmed)
 
   const loadTenants = useCallback(async () => {
     setLoadingList(true)
@@ -200,15 +205,20 @@ export default function ConsentScreen() {
             <input
               value={form.tenantId}
               onChange={e => setForm(f => ({ ...f, tenantId: e.target.value }))}
-              onKeyDown={e => e.key === 'Enter' && !loadingGen && generate()}
+              onKeyDown={e => e.key === 'Enter' && !loadingGen && tenantValid && generate()}
               placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
               style={{
                 height: 34, padding: '0 10px', borderRadius: 'var(--r-md)',
-                border: '1px solid var(--border-2)', background: '#fff',
+                border: `1px solid ${tenantValid ? 'var(--border-2)' : 'var(--err-border, #dc2626)'}`, background: '#fff',
                 fontSize: 13, fontFamily: 'var(--font-mono)', color: 'var(--fg-1)',
                 outline: 'none',
               }}
             />
+            {!tenantValid && (
+              <div style={{ fontSize: 11, color: 'var(--err-fg, #dc2626)', marginTop: 2 }}>
+                Use o Directory ID (UUID) ou domínio <code>*.onmicrosoft.com</code> — não o nome da empresa.
+              </div>
+            )}
           </div>
 
           <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
@@ -232,7 +242,7 @@ export default function ConsentScreen() {
             size="sm"
             icon="play"
             onClick={generate}
-            disabled={loadingGen || !form.tenantId.trim()}
+            disabled={loadingGen || !tenantTrimmed || !tenantValid}
           >
             {loadingGen ? 'Gerando…' : 'Gerar URL'}
           </Btn>

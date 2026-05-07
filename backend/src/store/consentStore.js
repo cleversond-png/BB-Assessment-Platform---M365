@@ -1,5 +1,6 @@
 const fs = require('fs');
 const path = require('path');
+const { TENANT_RE } = require('../config');
 const logger = require('../logger');
 
 const DATA_DIR = process.env.DATA_DIR || path.resolve(__dirname, '../../data');
@@ -53,7 +54,9 @@ function removeTenant(tenantId) {
 }
 
 function listTenants() {
-  return load();
+  // Filtra silenciosamente entries com tenantId fora do formato (UUID ou *.onmicrosoft.com)
+  // — protege contra ruído de inputs antigos antes da validação no /auth/consent.
+  return load().filter((t) => t.tenantId && TENANT_RE.test(t.tenantId));
 }
 
 function hasTenant(tenantId) {
