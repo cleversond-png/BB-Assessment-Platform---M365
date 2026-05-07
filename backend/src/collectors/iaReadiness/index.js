@@ -87,7 +87,8 @@ const READINESS_CHECKS = [
     detail: 'Políticas DLP genéricas para Exchange e SharePoint não cobrem o Copilot automaticamente. Sem uma política específica para o workload Copilot, a IA pode processar e exibir CPF, dados de cartão ou PII sem nenhum bloqueio.',
     check: (d) => {
       const dlp = d.governance?.collectors?.dlp;
-      return dlp && !dlp.unavailable && (dlp.summary?.copilotDlpPoliciesCount ?? 0) > 0;
+      if (!dlp || dlp.unavailable) return null; // DLP do Purview não exposto via Graph — verificação manual
+      return (dlp.summary?.copilotDlpPoliciesCount ?? 0) > 0;
     },
   },
   {

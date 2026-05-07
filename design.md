@@ -129,7 +129,7 @@ Todo collector deve retornar o mesmo shape:
 | | storage | 2 | ⚠️ stub | `Sites.Read.All` |
 | **Governance** | sensitivityLabels | 6 | ✅ | `InformationProtectionPolicy.Read.All` |
 | | audit | 4 | ✅ | `AuditLog.Read.All` |
-| | dlp (+ Copilot workload) | 3 | ✅ | `DataLossPreventionPolicy.Read.All` |
+| | dlp | 3 | ❌ fora do Graph (Purview/PowerShell) | — |
 | | retentionPolicies | 2 | ✅ | `RecordsManagement.Read.All` |
 | | copilotExtensions | 1 | ✅ | `ExternalConnection.Read.All` |
 | **Email Security** | spf | 2 | ✅ (DNS) | sem Graph |

@@ -22,9 +22,9 @@ const jobs = new Map();
 // se o unavailable pode vir de outras razões (licença ausente, etc), não mapeamos.
 const PERMISSION_BY_COLLECTOR = {
   oversharing:        'Sites.Read.All',
-  dlp:                'DataLossPreventionPolicy.Read.All',
   retentionPolicies:  'RecordsManagement.Read.All',
   copilotExtensions:  'ExternalConnection.Read.All',
+  // dlp: não há permissão Graph correspondente — DLP do Purview é manual via PowerShell
 };
 
 function detectMissingPermissions(domainResults) {

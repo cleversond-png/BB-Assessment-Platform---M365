@@ -7,7 +7,7 @@ Configuração da App Registration multi-tenant que sustenta a plataforma.
 - `app-registration-permissions.json` — manifest no formato `requiredResourceAccess` com todas as permissões Microsoft Graph application que o app precisa
 - `update-permissions.sh` — script Azure CLI para aplicar o manifest
 
-## Permissões (todas application/Role)
+## Permissões (14, todas application/Role)
 
 | ID | Permissão | Justificativa |
 |----|-----------|---------------|
@@ -25,7 +25,8 @@ Configuração da App Registration multi-tenant que sustenta a plataforma.
 | `83d4163d-…` | SharePointTenantSettings.Read.All | permissions (OneDrive global) |
 | `ac3a2b8e-…` | RecordsManagement.Read.All | retentionPolicies |
 | `1914711b-…` | ExternalConnection.Read.All | copilotExtensions |
-| `4f02b4ae-…` | DataLossPreventionPolicy.Read.All | dlp |
+
+> **DLP (Data Loss Prevention)** não está na lista — Microsoft Graph não expõe DLP policies do Purview via Application permission. A verificação fica manual via Microsoft Purview / Security & Compliance PowerShell e aparece como recomendação `DLP_COPILOT_MANUAL_REVIEW` para todo tenant.
 
 ## Como aplicar
 

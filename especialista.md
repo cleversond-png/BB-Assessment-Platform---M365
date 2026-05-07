@@ -41,7 +41,9 @@ A API do Microsoft Graph permite verificar quais sites têm permissões atribuí
 
 ---
 
-## Lacuna 2 — DLP com Workload Copilot Explícito ✅
+## Lacuna 2 — DLP com Workload Copilot Explícito ⚠️ (recomendação manual)
+
+> A verificação automática via Graph **não é possível**: a permissão `DataLossPreventionPolicy.Read.All` não existe no Microsoft Graph e o endpoint `/security/informationProtection/dataLossPreventionPolicies` não expõe DLP policies do Microsoft Purview. As policies do Purview são lidas apenas via Security & Compliance PowerShell (`Get-DlpCompliancePolicy`). A cobertura é entregue como **recomendação manual** (`DLP_COPILOT_MANUAL_REVIEW`) que dispara para todo tenant — o consultor verifica via Purview. O collector `dlp` retorna `unavailable: true` permanentemente.
 
 ### O que é
 O app já verifica se existem políticas DLP no tenant (`dlpCollector`), mas não verifica se alguma dessas políticas cobre especificamente o **Copilot for Microsoft 365** como workload protegido. Desde outubro de 2024, a Microsoft adicionou suporte explícito para DLP aplicado às interações do Copilot — incluindo restrição de quais tipos de conteúdo o Copilot pode processar e quais prompts são bloqueados.
@@ -293,7 +295,7 @@ O resultado salvo no disco tem estrutura `result.domains.iaReadiness`, não `res
 
 ## Permissões Adicionais Necessárias (App Registration) ✅
 
-Lista canônica versionada agora vive em [`azure/app-registration-permissions.json`](azure/app-registration-permissions.json) com aplicação automatizada via [`azure/update-permissions.sh`](azure/update-permissions.sh). Permissões novas adicionadas para cobrir as lacunas: `Sites.Read.All`, `AuditLog.Read.All`, `RecordsManagement.Read.All`, `RoleManagement.Read.Directory`, `ExternalConnection.Read.All`, `DataLossPreventionPolicy.Read.All`.
+Lista canônica versionada agora vive em [`azure/app-registration-permissions.json`](azure/app-registration-permissions.json) com aplicação automatizada via [`azure/update-permissions.sh`](azure/update-permissions.sh). Permissões novas adicionadas para cobrir as lacunas: `Sites.Read.All`, `AuditLog.Read.All`, `RecordsManagement.Read.All`, `RoleManagement.Read.Directory`, `ExternalConnection.Read.All`. **Não inclui** `DataLossPreventionPolicy.Read.All` — não existe no Microsoft Graph (ver Lacuna 2 acima).
 
 Após aplicar o manifest no Azure, **todos os tenants já consentidos precisam fazer re-consent** — a tela `/consent` mostra a lista completa de permissões e o overview de cada tenant exibe banner amarelo "Re-consent necessário" quando há permissão ausente.
 

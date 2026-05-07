@@ -273,15 +273,12 @@ const RULES = [
 
   // ── Governança / DLP ─────────────────────────────────────────────────────
   {
-    id: 'DLP_NO_COPILOT_POLICY',
-    check: (r) => {
-      const dlp = r.governance?.collectors?.dlp;
-      return dlp && !dlp.unavailable && (dlp.summary?.copilotDlpPoliciesCount ?? 0) === 0;
-    },
+    id: 'DLP_COPILOT_MANUAL_REVIEW',
+    check: (r) => r.governance?.collectors?.dlp?.unavailable === true,
     severity: 'high',
     category: 'Governança',
-    finding: 'Nenhuma política DLP cobre o Copilot for Microsoft 365 — dados sensíveis processados pelo Copilot sem restrição ou bloqueio.',
-    recommendation: 'Criar política DLP no Microsoft Purview com workload "Copilot for Microsoft 365". Definir quais tipos de informação sensível (CPF, cartão, PII) o Copilot não pode processar ou exibir nas respostas.',
+    finding: 'Cobertura DLP para Copilot não pode ser verificada automaticamente — Microsoft Graph não expõe políticas DLP do Purview via Application permission.',
+    recommendation: 'Verificar manualmente no Microsoft Purview se existe política DLP com workload "Copilot for Microsoft 365". Se não houver, criar uma definindo quais tipos de informação sensível (CPF, cartão, PII) o Copilot não pode processar ou exibir. Acesso programático apenas via Security & Compliance PowerShell (Get-DlpCompliancePolicy).',
     effort: 'medium',
     reference: 'https://learn.microsoft.com/en-us/purview/dlp-microsoft365-copilot',
   },

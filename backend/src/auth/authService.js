@@ -7,7 +7,6 @@ const tokenStore = require('./tokenStore');
 // precisa ter aprovadas. Mantenha em sincronia com azure/app-registration-permissions.json.
 const REQUIRED_PERMISSIONS = [
   { name: 'AuditLog.Read.All',                  category: 'Governança',     collectors: ['audit', 'usersBaseline (inactiveUsers)'] },
-  { name: 'DataLossPreventionPolicy.Read.All',  category: 'Governança',     collectors: ['dlp'] },
   { name: 'ExternalConnection.Read.All',        category: 'Copilot',        collectors: ['copilotExtensions'] },
   { name: 'Files.Read.All',                     category: 'SharePoint',     collectors: ['files'] },
   { name: 'IdentityRiskyUser.Read.All',         category: 'Identidade',     collectors: ['riskyUsers'], requires: 'Entra ID P2' },
