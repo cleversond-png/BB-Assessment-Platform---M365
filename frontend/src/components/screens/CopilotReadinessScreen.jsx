@@ -1,26 +1,29 @@
 import { PageHeader, Card, Btn, Pill, ScoreDonut, Icon } from '../primitives/index.jsx'
 
 function ChecklistRow({ check, divider }) {
-  const tone = check.passed ? 'ok'
+  const tone = check.unavailable ? 'neutral'
+    : check.passed ? 'ok'
     : check.impact === 'critical' ? 'critical'
     : check.impact === 'high' ? 'high'
     : 'medium'
+  const iconName = check.unavailable ? 'minus' : check.passed ? 'check' : 'x'
+  const iconBg = check.unavailable ? 'var(--bg-subtle)' : check.passed ? 'var(--ok-bg)' : 'var(--sev-critical-bg)'
+  const iconBd = check.unavailable ? 'var(--border-2)' : check.passed ? 'var(--ok-bd)' : 'var(--sev-critical-bd)'
+  const iconFg = check.unavailable ? 'var(--fg-3)' : check.passed ? 'var(--ok-fg)' : 'var(--sev-critical-fg)'
   return (
-    <div style={{ display: 'grid', gridTemplateColumns: '32px 1fr 110px 90px', alignItems: 'center', gap: 16, padding: '16px 20px', borderTop: divider ? '1px solid var(--border-1)' : 'none' }}>
+    <div style={{ display: 'grid', gridTemplateColumns: '32px 1fr 130px 90px', alignItems: 'center', gap: 16, padding: '16px 20px', borderTop: divider ? '1px solid var(--border-1)' : 'none' }}>
       <div style={{
         width: 24, height: 24, borderRadius: 6,
-        background: check.passed ? 'var(--ok-bg)' : 'var(--sev-critical-bg)',
-        border: `1px solid ${check.passed ? 'var(--ok-bd)' : 'var(--sev-critical-bd)'}`,
-        display: 'flex', alignItems: 'center', justifyContent: 'center',
-        color: check.passed ? 'var(--ok-fg)' : 'var(--sev-critical-fg)',
+        background: iconBg, border: `1px solid ${iconBd}`,
+        display: 'flex', alignItems: 'center', justifyContent: 'center', color: iconFg,
       }}>
-        <Icon name={check.passed ? 'check' : 'x'} size={14} />
+        <Icon name={iconName} size={14} />
       </div>
       <div>
         <div className="t-body" style={{ fontWeight: 500 }}>{check.label || check.id}</div>
         {check.detail && <div className="t-sm" style={{ color: 'var(--fg-2)', marginTop: 2 }}>{check.detail}</div>}
       </div>
-      <Pill tone={tone} dot>{check.passed ? 'Atendido' : 'Pendente'}</Pill>
+      <Pill tone={tone} dot>{check.unavailable ? 'Não verificado' : check.passed ? 'Atendido' : 'Pendente'}</Pill>
       <span className="t-xs">peso <b>{check.weight}</b> · <span style={{ color: 'var(--fg-1)' }}>{check.impact}</span></span>
     </div>
   )
@@ -29,8 +32,9 @@ function ChecklistRow({ check, divider }) {
 export default function CopilotReadinessScreen({ result }) {
   const ia = result?.domains?.iaReadiness
   const checks = ia?.checks || []
-  const blockers = checks.filter(c => !c.passed && c.impact === 'critical')
+  const blockers = checks.filter(c => !c.passed && !c.unavailable && c.impact === 'critical')
   const passed = checks.filter(c => c.passed).length
+  const unavailable = checks.filter(c => c.unavailable).length
   const total = checks.length
   const score = ia?.domainScore ?? 0
   const readinessLabel = ia?.readinessLevel || (ia?.copilotReady ? 'Pronto' : 'Não Pronto')
@@ -50,6 +54,7 @@ export default function CopilotReadinessScreen({ result }) {
           <ScoreDonut value={score} label={readinessLabel} />
           <div className="t-sm" style={{ textAlign: 'center' }}>
             <b>{passed} de {total}</b> pré-requisitos atendidos
+            {unavailable > 0 && <span style={{ color: 'var(--fg-3)', display: 'block', marginTop: 4 }}>{unavailable} não verificado(s) — permissão ausente no consent</span>}
           </div>
         </Card>
 

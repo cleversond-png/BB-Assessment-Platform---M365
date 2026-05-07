@@ -10,6 +10,13 @@ function ensureDir() {
   if (!fs.existsSync(RESULTS_DIR)) fs.mkdirSync(RESULTS_DIR, { recursive: true });
 }
 
+function hasCollectorData(result) {
+  const domains = result.domains || {};
+  return Object.entries(domains).some(
+    ([key, d]) => key !== 'iaReadiness' && d.collectors && Object.keys(d.collectors).length > 0
+  );
+}
+
 function save(tenantId, result) {
   ensureDir();
   const ts = new Date().toISOString().replace(/[:.]/g, '-');
@@ -17,9 +24,15 @@ function save(tenantId, result) {
   const latest = path.join(RESULTS_DIR, `latest_${tenantId}.json`);
 
   fs.writeFileSync(file, JSON.stringify(result, null, 2));
-  fs.writeFileSync(latest, JSON.stringify(result, null, 2));
 
-  logger.info({ event: 'result_saved', tenantId, file });
+  if (hasCollectorData(result)) {
+    fs.writeFileSync(latest, JSON.stringify(result, null, 2));
+    logger.info({ event: 'result_saved', tenantId, file, latestUpdated: true });
+  } else {
+    logger.warn({ event: 'result_saved_no_data', tenantId, file, latestUpdated: false,
+      reason: 'collectors empty — latest not overwritten' });
+  }
+
   return file;
 }
 

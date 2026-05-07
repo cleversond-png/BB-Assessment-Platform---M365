@@ -30,7 +30,8 @@ const READINESS_CHECKS = [
     impact: 'critical',
     check: (d) => {
       const s = d.sharePoint?.collectors?.oversharing;
-      return s && !s.unavailable && s.summary?.sitesWithEveryoneCount === 0;
+      if (!s || s.unavailable) return null; // Sites.Read.All ausente no consent — não pode verificar
+      return s.summary?.sitesWithEveryoneCount === 0;
     },
   },
   {
@@ -128,16 +129,24 @@ function assessIAReadiness(tenantId, domains) {
   logger.info({ event: 'assessment_start', domain: 'iaReadiness', tenantId });
 
   let weightedScore = 0;
+  let usedWeight = 0;
   const checks = READINESS_CHECKS.map((c) => {
-    let passed = false;
-    try { passed = !!c.check(domains); } catch { /* missing data = not passed */ }
-    if (passed) weightedScore += c.weight;
-    return { id: c.id, label: c.label, detail: c.detail, passed, weight: c.weight, impact: c.impact };
+    let raw;
+    try { raw = c.check(domains); } catch { raw = false; }
+    const unavailable = raw === null || raw === undefined;
+    const passed = unavailable ? false : !!raw;
+    if (!unavailable) {
+      usedWeight += c.weight;
+      if (passed) weightedScore += c.weight;
+    }
+    return { id: c.id, label: c.label, detail: c.detail, passed, unavailable, weight: c.weight, impact: c.impact };
   });
 
-  const domainScore = Math.round(weightedScore * 5 * 10) / 10;
+  const domainScore = usedWeight > 0
+    ? Math.round((weightedScore / usedWeight) * 5 * 10) / 10
+    : 0;
   const level = READINESS_LEVELS.find((l) => domainScore >= l.min);
-  const blockers = checks.filter((c) => !c.passed && (c.impact === 'critical' || c.impact === 'high'));
+  const blockers = checks.filter((c) => !c.unavailable && !c.passed && (c.impact === 'critical' || c.impact === 'high'));
 
   logger.info({ event: 'assessment_done', domain: 'iaReadiness', tenantId, domainScore, readinessLevel: level.label });
 
@@ -153,6 +162,7 @@ function assessIAReadiness(tenantId, domains) {
     summary: {
       passedCount: checks.filter((c) => c.passed).length,
       totalChecks: checks.length,
+      unavailableCount: checks.filter((c) => c.unavailable).length,
       criticalBlockers: blockers.filter((b) => b.impact === 'critical').length,
       highBlockers: blockers.filter((b) => b.impact === 'high').length,
     },
