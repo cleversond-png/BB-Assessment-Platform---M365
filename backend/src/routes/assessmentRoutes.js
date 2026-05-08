@@ -8,6 +8,8 @@ const { assessIAReadiness } = require('../collectors/iaReadiness');
 const { generateRecommendations } = require('../recommendations');
 const { generatePDF } = require('../pdf/pdfGenerator');
 const tokenStore = require('../auth/tokenStore');
+const consentStore = require('../store/consentStore');
+const { acquireTokenForTenant } = require('../auth/authService');
 const resultsStore = require('../store/resultsStore');
 const logger = require('../logger');
 
@@ -43,7 +45,9 @@ function detectMissingPermissions(domainResults) {
 function requireConsent(req, res, next) {
   const { tenantId } = req.body;
   if (!tenantId) return res.status(400).json({ error: 'tenantId is required' });
-  if (!tokenStore.hasConsent(tenantId)) {
+  // Verifica consent no store persistido em disco — não no tokenStore in-memory,
+  // que pode estar vazio após restart do App Service mesmo com consent válido.
+  if (!consentStore.hasTenant(tenantId)) {
     return res.status(403).json({ error: 'No active consent for this tenant. Complete the auth flow first.' });
   }
   next();
@@ -85,6 +89,18 @@ async function runAssessmentBackground(tenantId) {
 
     const missingPermissions = detectMissingPermissions(domainResults);
 
+    // Agrega erros por domínio (o domain runner já guarda errors[name] internamente)
+    // para que o operador veja na UI o que falhou — sem isso, o resultado parece ok
+    // mas com score baixo e nenhuma pista do motivo.
+    const assessmentErrors = {};
+    for (const [key, d] of Object.entries(domainResults)) {
+      if (d?.errors && Object.keys(d.errors).length > 0) {
+        assessmentErrors[key] = d.errors;
+      } else if (d?.error) {
+        assessmentErrors[key] = { domain: d.error };
+      }
+    }
+
     const result = {
       tenantId,
       tenantName: domainResults.baseline?.collectors?.tenantInfo?.displayName || null,
@@ -93,6 +109,7 @@ async function runAssessmentBackground(tenantId) {
       overallScore,
       missingPermissions,
       reconsentNeeded: missingPermissions.length > 0,
+      assessmentErrors: Object.keys(assessmentErrors).length > 0 ? assessmentErrors : undefined,
       domains: domainResults,
       recommendations: generateRecommendations(domainResults),
     };
@@ -109,13 +126,27 @@ async function runAssessmentBackground(tenantId) {
 }
 
 // POST /assessment/start — starts async assessment, returns immediately
-router.post('/start', requireConsent, (req, res) => {
+router.post('/start', requireConsent, async (req, res) => {
   const { tenantId } = req.body;
 
   // If already running, return current status (don't start a second job)
   const existing = jobs.get(tenantId);
   if (existing?.status === 'running') {
     return res.json({ status: 'running', tenantId });
+  }
+
+  // Pre-flight: re-adquirir token (client_credentials, sem user). Token tem TTL de 1h —
+  // sem isso, assessments rodados horas depois do consent falham silenciosamente nos
+  // collectors com "No valid token" e produzem resultado lixo (overall ~0.1).
+  try {
+    await acquireTokenForTenant(tenantId);
+  } catch (err) {
+    const azureError = err.response?.data?.error_description || err.message;
+    logger.error({ event: 'preflight_token_failed', tenantId, error: azureError });
+    return res.status(500).json({
+      error: 'Falha ao adquirir token para o tenant. Pode ser necessário re-consent.',
+      detail: azureError,
+    });
   }
 
   const job = { status: 'running', domains: {}, startedAt: new Date().toISOString() };
