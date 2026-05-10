@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import { PageHeader, Card, Btn, Pill, ScoreDonut, ScoreBar, MetricStat, Icon } from '../primitives/index.jsx'
 
 const DOMAIN_META = {
@@ -191,6 +192,100 @@ function CopilotReadinessBanner({ iaReadiness }) {
   )
 }
 
+function ReadinessExplainerCard({ iaReadiness }) {
+  const [open, setOpen] = useState(false)
+  const checks = iaReadiness?.checks
+  if (!checks?.length) return null
+
+  const GREEN_BG   = '#f0fdf4'
+  const GREEN_BD   = '#bbf7d0'
+  const GREEN_FG   = '#166534'
+  const GREEN_ROW  = '#dcfce7'
+  const GREEN_ICON = '#86efac'
+
+  const impactLabel = { critical: 'Crítico', high: 'Alto', medium: 'Médio' }
+
+  return (
+    <div style={{ marginBottom: 24, borderRadius: 'var(--r-xl)', border: `1px solid ${GREEN_BD}`, overflow: 'hidden' }}>
+      <div
+        onClick={() => setOpen(!open)}
+        style={{
+          display: 'flex', alignItems: 'center', gap: 10,
+          padding: '12px 20px', background: GREEN_BG, cursor: 'pointer', userSelect: 'none',
+        }}
+      >
+        <Icon name="book-open" size={16} style={{ color: GREEN_FG, flexShrink: 0 }} />
+        <span style={{ fontWeight: 600, fontSize: 13, color: GREEN_FG, flex: 1 }}>
+          O que significa cada pré-requisito do Copilot?
+        </span>
+        <span style={{ fontSize: 11, color: GREEN_FG, opacity: 0.7, marginRight: 6 }}>
+          {open ? 'Fechar guia' : 'Ver explicações'}
+        </span>
+        <Icon name={open ? 'chevron-up' : 'chevron-down'} size={15} style={{ color: GREEN_FG }} />
+      </div>
+
+      {open && (
+        <div style={{ background: GREEN_BG }}>
+          {checks.map((check, i) => {
+            const unavail = check.unavailable
+            const passed  = !unavail && check.passed
+            const failed  = !unavail && !check.passed
+
+            const iconName = unavail ? 'minus' : passed ? 'check' : 'x'
+            const iconBg   = unavail ? 'var(--bg-subtle)' : passed ? GREEN_ROW : 'var(--sev-critical-bg)'
+            const iconBd   = unavail ? 'var(--border-2)'  : passed ? GREEN_ICON : 'var(--sev-critical-bd)'
+            const iconFg   = unavail ? 'var(--fg-3)'      : passed ? GREEN_FG   : 'var(--sev-critical-fg)'
+
+            const pillBg   = unavail ? 'var(--bg-subtle)' : passed ? GREEN_ROW : 'var(--sev-critical-bg)'
+            const pillBd   = unavail ? 'var(--border-1)'  : passed ? GREEN_ICON : 'var(--sev-critical-bd)'
+            const pillFg   = unavail ? 'var(--fg-3)'      : passed ? GREEN_FG   : 'var(--sev-critical-fg)'
+            const pillText = unavail ? 'Não verificado'   : passed ? 'Atendido' : 'Pendente'
+
+            return (
+              <div
+                key={check.id}
+                style={{
+                  display: 'grid', gridTemplateColumns: '28px 1fr auto',
+                  alignItems: 'flex-start', gap: 12, padding: '13px 20px',
+                  borderTop: `1px solid ${GREEN_BD}`,
+                }}
+              >
+                <div style={{
+                  width: 24, height: 24, borderRadius: 6, flexShrink: 0, marginTop: 1,
+                  background: iconBg, border: `1px solid ${iconBd}`,
+                  display: 'flex', alignItems: 'center', justifyContent: 'center', color: iconFg,
+                }}>
+                  <Icon name={iconName} size={13} />
+                </div>
+
+                <div>
+                  <div style={{ fontWeight: 600, fontSize: 13, color: 'var(--fg-0)' }}>{check.label}</div>
+                  {check.detail && (
+                    <div style={{ fontSize: 12, color: 'var(--fg-2)', marginTop: 3, lineHeight: 1.55 }}>{check.detail}</div>
+                  )}
+                  {check.impact && (
+                    <div style={{ fontSize: 11, color: GREEN_FG, marginTop: 5, opacity: 0.75 }}>
+                      Impacto: {impactLabel[check.impact] ?? check.impact} · Peso: {check.weight}
+                    </div>
+                  )}
+                </div>
+
+                <div style={{
+                  fontSize: 11, fontWeight: 600, padding: '3px 9px', borderRadius: 999,
+                  background: pillBg, color: pillFg, border: `1px solid ${pillBd}`,
+                  whiteSpace: 'nowrap', alignSelf: 'flex-start', marginTop: 1,
+                }}>
+                  {pillText}
+                </div>
+              </div>
+            )
+          })}
+        </div>
+      )}
+    </div>
+  )
+}
+
 function SeverityCount({ tone, count, label }) {
   const colorMap = {
     critical: 'var(--sev-critical-fg)',
@@ -233,6 +328,7 @@ export default function OverviewScreen({ result, onSelectDomain, onOpenRec }) {
 
       <ReconsentBanner result={result} tenantId={result.tenantId} />
       <CopilotReadinessBanner iaReadiness={result.domains?.iaReadiness} />
+      <ReadinessExplainerCard iaReadiness={result.domains?.iaReadiness} />
 
       {/* HERO row: donut + metrics */}
       <div style={{ display: 'grid', gridTemplateColumns: '320px 1fr', gap: 24, marginBottom: 24 }}>

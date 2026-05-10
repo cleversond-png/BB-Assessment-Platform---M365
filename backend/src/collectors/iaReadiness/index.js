@@ -84,10 +84,13 @@ const READINESS_CHECKS = [
     label: 'Política DLP cobrindo Copilot for M365',
     weight: 0.10,
     impact: 'high',
-    detail: 'Políticas DLP genéricas para Exchange e SharePoint não cobrem o Copilot automaticamente. Sem uma política específica para o workload Copilot, a IA pode processar e exibir CPF, dados de cartão ou PII sem nenhum bloqueio.',
+    detail: 'Políticas DLP genéricas para Exchange e SharePoint não cobrem o Copilot automaticamente. Sem uma política específica para o workload Copilot, a IA pode processar e exibir CPF, dados de cartão ou PII sem nenhum bloqueio. Verificação indireta via alertas de DLP — cobertura específica para Copilot requer auditoria manual no Purview.',
     check: (d) => {
       const dlp = d.governance?.collectors?.dlp;
-      if (!dlp || dlp.unavailable) return null; // DLP do Purview não exposto via Graph — verificação manual
+      if (!dlp || dlp.unavailable) return null;
+      // Proxy via DLP alerts: se há alertas recentes, políticas estão ativas.
+      // Não confirma cobertura do workload Copilot — retorna null (não verificável).
+      if (dlp.proxy) return dlp.summary?.alertsInPeriod > 0 ? true : null;
       return (dlp.summary?.copilotDlpPoliciesCount ?? 0) > 0;
     },
   },
