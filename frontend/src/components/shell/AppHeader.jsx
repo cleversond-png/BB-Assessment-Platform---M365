@@ -84,7 +84,7 @@ export default function AppHeader({ result, onRun, loading, tenantId, setTenantI
           }}
         />
         {result && (
-          <Btn variant="secondary" size="sm" icon="download">Exportar PDF</Btn>
+          <Btn variant="secondary" size="sm" icon="download" onClick={() => window.open(`/assessment/results/${result.tenantId}/pdf`, '_blank')}>Exportar PDF</Btn>
         )}
         <Btn variant="primary" size="sm" icon="play" onClick={onRun} disabled={loading || (!result && !tenantId.trim())}>
           {loading ? 'Executando…' : result ? 'Re-rodar' : 'Rodar assessment'}
