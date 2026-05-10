@@ -1,0 +1,1619 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Guia de Consentimento — BB Assessment Platform M365</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg:        #f8fafc;
+      --surface:   #ffffff;
+      --surface2:  #f1f5f9;
+      --border:    #e2e8f0;
+      --text:      #1e293b;
+      --text-dim:  #64748b;
+      --text-xs:   #94a3b8;
+      --blue:      #2563eb;
+      --blue-bg:   #eff6ff;
+      --blue-bd:   #bfdbfe;
+      --green:     #16a34a;
+      --green-bg:  #f0fdf4;
+      --green-bd:  #bbf7d0;
+      --amber:     #d97706;
+      --amber-bg:  #fffbeb;
+      --amber-bd:  #fde68a;
+      --red:       #dc2626;
+      --red-bg:    #fef2f2;
+      --red-bd:    #fecaca;
+      --purple:    #7c3aed;
+      --purple-bg: #f5f3ff;
+      --purple-bd: #ddd6fe;
+      --navy:      #1e40af;
+      --radius:    8px;
+      --radius-lg: 12px;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.6;
+      font-size: 15px;
+    }
+
+    /* ─── HEADER ─── */
+    .site-header {
+      background: var(--navy);
+      color: #fff;
+      padding: 20px 40px;
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      box-shadow: 0 2px 12px rgba(0,0,0,.25);
+    }
+    .site-header .logo {
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: .12em;
+      text-transform: uppercase;
+      color: #93c5fd;
+    }
+    .site-header h1 {
+      font-size: 16px;
+      font-weight: 600;
+      color: #fff;
+    }
+    .site-header .sep { flex: 1; }
+    .site-header .badge {
+      background: rgba(255,255,255,.15);
+      border: 1px solid rgba(255,255,255,.2);
+      border-radius: 100px;
+      font-size: 11px;
+      font-weight: 600;
+      padding: 3px 12px;
+      color: #e0f2fe;
+    }
+
+    /* ─── NAV TABS ─── */
+    .tab-bar {
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      gap: 0;
+      overflow-x: auto;
+      scrollbar-width: none;
+      padding: 0 32px;
+      position: sticky;
+      top: 61px;
+      z-index: 90;
+    }
+    .tab-bar::-webkit-scrollbar { display: none; }
+    .tab {
+      padding: 14px 20px;
+      font-size: 13px;
+      font-weight: 500;
+      color: var(--text-dim);
+      cursor: pointer;
+      border-bottom: 2px solid transparent;
+      white-space: nowrap;
+      transition: all .15s;
+      user-select: none;
+    }
+    .tab:hover { color: var(--text); }
+    .tab.active {
+      color: var(--blue);
+      border-bottom-color: var(--blue);
+      font-weight: 600;
+    }
+
+    /* ─── LAYOUT ─── */
+    .container {
+      max-width: 900px;
+      margin: 0 auto;
+      padding: 48px 32px 80px;
+    }
+
+    /* ─── SECTIONS ─── */
+    .section { display: none; }
+    .section.active { display: block; }
+
+    /* ─── HERO CALLOUT ─── */
+    .hero {
+      background: linear-gradient(135deg, var(--navy) 0%, #1e3a8a 100%);
+      border-radius: var(--radius-lg);
+      padding: 40px 44px;
+      color: #fff;
+      margin-bottom: 40px;
+    }
+    .hero h2 {
+      font-size: 22px;
+      font-weight: 700;
+      margin-bottom: 10px;
+      color: #fff;
+    }
+    .hero p {
+      font-size: 15px;
+      color: #bfdbfe;
+      max-width: 680px;
+      line-height: 1.7;
+    }
+    .hero .hero-stats {
+      display: flex;
+      gap: 32px;
+      margin-top: 28px;
+      flex-wrap: wrap;
+    }
+    .hero-stat {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+    .hero-stat .num {
+      font-size: 28px;
+      font-weight: 700;
+      color: #fff;
+    }
+    .hero-stat .lbl {
+      font-size: 11px;
+      font-weight: 500;
+      letter-spacing: .08em;
+      text-transform: uppercase;
+      color: #93c5fd;
+    }
+
+    /* ─── CALLOUT BOXES ─── */
+    .callout {
+      border-radius: var(--radius);
+      padding: 18px 22px;
+      margin-bottom: 20px;
+      display: flex;
+      gap: 14px;
+      align-items: flex-start;
+    }
+    .callout-icon { font-size: 18px; flex-shrink: 0; margin-top: 1px; }
+    .callout-body { flex: 1; }
+    .callout-title { font-size: 13px; font-weight: 700; margin-bottom: 5px; }
+    .callout-text { font-size: 13px; line-height: 1.65; }
+    .callout.blue   { background: var(--blue-bg);   border: 1px solid var(--blue-bd);   color: #1e40af; }
+    .callout.green  { background: var(--green-bg);  border: 1px solid var(--green-bd);  color: #14532d; }
+    .callout.amber  { background: var(--amber-bg);  border: 1px solid var(--amber-bd);  color: #78350f; }
+    .callout.red    { background: var(--red-bg);    border: 1px solid var(--red-bd);    color: #7f1d1d; }
+    .callout.purple { background: var(--purple-bg); border: 1px solid var(--purple-bd); color: #4c1d95; }
+
+    /* ─── SECTION TITLE ─── */
+    .sec-title {
+      font-size: 20px;
+      font-weight: 700;
+      color: var(--text);
+      margin-bottom: 6px;
+    }
+    .sec-subtitle {
+      font-size: 14px;
+      color: var(--text-dim);
+      margin-bottom: 32px;
+    }
+
+    /* ─── PERMISSION CARDS ─── */
+    .perm-grid { display: flex; flex-direction: column; gap: 20px; margin-bottom: 32px; }
+
+    .perm-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      overflow: hidden;
+      transition: box-shadow .15s;
+    }
+    .perm-card:hover { box-shadow: 0 4px 20px rgba(0,0,0,.07); }
+
+    .perm-header {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      padding: 18px 22px;
+      border-bottom: 1px solid var(--border);
+      background: var(--surface2);
+    }
+    .perm-icon {
+      width: 36px;
+      height: 36px;
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 16px;
+      flex-shrink: 0;
+    }
+    .perm-name {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 13px;
+      font-weight: 500;
+      color: var(--navy);
+    }
+    .perm-category {
+      margin-left: auto;
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: .06em;
+      text-transform: uppercase;
+      padding: 3px 10px;
+      border-radius: 100px;
+    }
+
+    .perm-body { padding: 20px 22px; }
+    .perm-section { margin-bottom: 18px; }
+    .perm-section:last-child { margin-bottom: 0; }
+    .perm-section-label {
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: .1em;
+      text-transform: uppercase;
+      color: var(--text-xs);
+      margin-bottom: 8px;
+    }
+    .perm-section-text {
+      font-size: 14px;
+      color: var(--text);
+      line-height: 1.65;
+    }
+
+    .dos-donts {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+    }
+    .dos, .donts {
+      border-radius: var(--radius);
+      padding: 14px 16px;
+    }
+    .dos { background: var(--green-bg); border: 1px solid var(--green-bd); }
+    .donts { background: var(--red-bg); border: 1px solid var(--red-bd); }
+    .dos-title, .donts-title {
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: .08em;
+      text-transform: uppercase;
+      margin-bottom: 8px;
+    }
+    .dos-title { color: var(--green); }
+    .donts-title { color: var(--red); }
+    .dos ul, .donts ul { list-style: none; padding: 0; }
+    .dos li, .donts li {
+      font-size: 12.5px;
+      line-height: 1.55;
+      padding: 3px 0;
+      display: flex;
+      gap: 7px;
+      align-items: flex-start;
+    }
+    .dos li::before { content: '✓'; color: var(--green); font-weight: 700; flex-shrink: 0; }
+    .donts li::before { content: '✗'; color: var(--red); font-weight: 700; flex-shrink: 0; }
+
+    .requires-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      font-size: 11px;
+      font-weight: 600;
+      padding: 3px 10px;
+      border-radius: 100px;
+      background: var(--amber-bg);
+      border: 1px solid var(--amber-bd);
+      color: var(--amber);
+      margin-top: 6px;
+    }
+
+    /* ─── ANALOGY BOX ─── */
+    .analogy {
+      background: var(--purple-bg);
+      border: 1px solid var(--purple-bd);
+      border-radius: var(--radius);
+      padding: 16px 20px;
+      margin-top: 10px;
+      font-size: 13px;
+      color: #4c1d95;
+      line-height: 1.65;
+    }
+    .analogy strong { color: var(--purple); }
+
+    /* ─── SCRIPT BLOCKS ─── */
+    .script-block {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      margin-bottom: 28px;
+      overflow: hidden;
+    }
+    .script-header {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 16px 22px;
+      background: var(--surface2);
+      border-bottom: 1px solid var(--border);
+    }
+    .script-role {
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--text);
+    }
+    .script-role-badge {
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: .08em;
+      text-transform: uppercase;
+      padding: 3px 10px;
+      border-radius: 100px;
+    }
+    .script-body { padding: 22px; }
+    .script-q {
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--text);
+      margin-bottom: 8px;
+      display: flex;
+      gap: 8px;
+      align-items: flex-start;
+    }
+    .script-q::before {
+      content: 'Q:';
+      color: var(--red);
+      font-weight: 700;
+      flex-shrink: 0;
+      font-size: 11px;
+      background: var(--red-bg);
+      border: 1px solid var(--red-bd);
+      padding: 1px 6px;
+      border-radius: 4px;
+      margin-top: 1px;
+    }
+    .script-a {
+      font-size: 14px;
+      color: var(--text);
+      line-height: 1.7;
+      padding-left: 36px;
+      margin-bottom: 22px;
+    }
+    .script-a::before {
+      display: none;
+    }
+    .script-a-label {
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: .08em;
+      text-transform: uppercase;
+      color: var(--green);
+      background: var(--green-bg);
+      border: 1px solid var(--green-bd);
+      padding: 1px 6px;
+      border-radius: 4px;
+      display: inline-block;
+      margin-bottom: 6px;
+      margin-left: 36px;
+    }
+
+    /* ─── PROOF TABLE ─── */
+    .proof-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-bottom: 32px;
+      font-size: 13.5px;
+    }
+    .proof-table th {
+      text-align: left;
+      padding: 10px 16px;
+      background: var(--navy);
+      color: #fff;
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: .06em;
+      text-transform: uppercase;
+    }
+    .proof-table th:first-child { border-radius: var(--radius) 0 0 0; }
+    .proof-table th:last-child  { border-radius: 0 var(--radius) 0 0; }
+    .proof-table td {
+      padding: 11px 16px;
+      border-bottom: 1px solid var(--border);
+      vertical-align: top;
+      line-height: 1.55;
+    }
+    .proof-table tr:last-child td { border-bottom: none; }
+    .proof-table tr:nth-child(even) td { background: var(--surface2); }
+    .proof-table .mono {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 12px;
+      color: var(--navy);
+    }
+    .yes { color: var(--green); font-weight: 700; }
+    .no  { color: var(--red);   font-weight: 700; }
+
+    /* ─── CATEGORY COLORS ─── */
+    .cat-baseline   { background: #dbeafe; color: #1e40af; }
+    .cat-identidade { background: #e0e7ff; color: #3730a3; }
+    .cat-sharepoint { background: #d1fae5; color: #065f46; }
+    .cat-governanca { background: #fce7f3; color: #9d174d; }
+    .cat-copilot    { background: #fff3cd; color: #92400e; }
+    .cat-teams      { background: #d1fae5; color: #064e3b; }
+
+    .icon-baseline   { background: #dbeafe; }
+    .icon-identidade { background: #e0e7ff; }
+    .icon-sharepoint { background: #d1fae5; }
+    .icon-governanca { background: #fce7f3; }
+    .icon-copilot    { background: #fff3cd; }
+    .icon-teams      { background: #d1fae5; }
+
+    /* ─── FOOTER ─── */
+    .page-footer {
+      background: var(--surface);
+      border-top: 1px solid var(--border);
+      padding: 20px 40px;
+      text-align: center;
+      font-size: 12px;
+      color: var(--text-xs);
+    }
+
+    /* ─── RESPONSIVE ─── */
+    @media (max-width: 640px) {
+      .container { padding: 24px 16px 60px; }
+      .hero { padding: 28px 22px; }
+      .dos-donts { grid-template-columns: 1fr; }
+      .hero-stats { gap: 20px; }
+      .site-header { padding: 14px 16px; }
+      .tab-bar { padding: 0 12px; }
+      .tab { padding: 12px 14px; }
+    }
+
+    hr.divider {
+      border: none;
+      border-top: 1px solid var(--border);
+      margin: 32px 0;
+    }
+
+    h3.subsec {
+      font-size: 16px;
+      font-weight: 700;
+      color: var(--text);
+      margin: 28px 0 14px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    h3.subsec::after {
+      content: '';
+      flex: 1;
+      height: 1px;
+      background: var(--border);
+    }
+  </style>
+</head>
+<body>
+
+<!-- ─── HEADER ─── -->
+<header class="site-header">
+  <div>
+    <div class="logo">BB Assessment Platform</div>
+    <h1>Guia de Consentimento Microsoft 365</h1>
+  </div>
+  <div class="sep"></div>
+  <div class="badge">Para Uso Interno e Pré-Venda</div>
+</header>
+
+<!-- ─── TABS ─── -->
+<nav class="tab-bar">
+  <div class="tab active" data-tab="visao-geral">Visão Geral</div>
+  <div class="tab" data-tab="permissoes">Permissões em Detalhe</div>
+  <div class="tab" data-tab="scripts">Scripts por Perfil</div>
+  <div class="tab" data-tab="prova">Prova Técnica</div>
+</nav>
+
+<!-- ═══════════════════════════════════════════
+     TAB 1 — VISÃO GERAL
+═══════════════════════════════════════════ -->
+<div id="visao-geral" class="section active">
+  <div class="container">
+
+    <div class="hero">
+      <h2>Por que o cliente precisa conceder consentimento?</h2>
+      <p>
+        A plataforma lê <strong style="color:#fff">configurações de governança</strong> do ambiente Microsoft 365 do cliente
+        via Microsoft Graph API — o mesmo canal oficial usado pelas ferramentas da própria Microsoft.
+        Nenhum email, arquivo, mensagem ou dado de conteúdo é acessado ou armazenado.
+      </p>
+      <div class="hero-stats">
+        <div class="hero-stat">
+          <span class="num">15</span>
+          <span class="lbl">Permissões solicitadas</span>
+        </div>
+        <div class="hero-stat">
+          <span class="num">0</span>
+          <span class="lbl">Permissões de escrita</span>
+        </div>
+        <div class="hero-stat">
+          <span class="num">0</span>
+          <span class="lbl">Acesso a conteúdo</span>
+        </div>
+        <div class="hero-stat">
+          <span class="num">100%</span>
+          <span class="lbl">Read-only</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="callout green">
+      <div class="callout-icon">🔒</div>
+      <div class="callout-body">
+        <div class="callout-title">Princípio fundamental: Least Privilege absoluto</div>
+        <div class="callout-text">
+          Cada permissão foi escolhida para cobrir exatamente o que precisa ser avaliado — nada mais.
+          A App Registration não tem permissões de escrita em nenhum serviço.
+          Não pode criar usuários, não pode enviar emails, não pode modificar políticas.
+        </div>
+      </div>
+    </div>
+
+    <div class="callout blue">
+      <div class="callout-icon">ℹ️</div>
+      <div class="callout-body">
+        <div class="callout-title">Como funciona o consentimento de administrador</div>
+        <div class="callout-text">
+          O Global Admin do tenant do cliente acessa uma URL gerada pela plataforma, faz login com a conta corporativa
+          e aprova as permissões listadas. A partir daí, a plataforma obtém tokens de acesso somente para leitura
+          para aquele tenant específico. Os dados de outros clientes ficam completamente isolados.
+        </div>
+      </div>
+    </div>
+
+    <div class="callout amber">
+      <div class="callout-icon">⚠️</div>
+      <div class="callout-body">
+        <div class="callout-title">Duas permissões novas em V2 (re-consent necessário)</div>
+        <div class="callout-text">
+          Se o cliente já concedeu consentimento na V1, será necessário re-consent para ativar:
+          <strong>Application.Read.All</strong> (detecta apps de terceiros com permissões excessivas) e
+          <strong>Team.ReadBasic.All</strong> (avalia configurações de segurança do Microsoft Teams).
+          Ambas são somente leitura e estão detalhadas na aba "Permissões em Detalhe".
+        </div>
+      </div>
+    </div>
+
+    <h3 class="subsec">Resumo visual de todas as permissões</h3>
+
+    <table class="proof-table">
+      <thead>
+        <tr>
+          <th>Permissão</th>
+          <th>Domínio</th>
+          <th>O que lê</th>
+          <th>Lê conteúdo?</th>
+          <th>Escreve?</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td class="mono">AuditLog.Read.All</td>
+          <td>Governança</td>
+          <td>Metadados de eventos de auditoria (quem fez o quê, quando)</td>
+          <td class="no">Não</td>
+          <td class="no">Não</td>
+        </tr>
+        <tr>
+          <td class="mono">ExternalConnection.Read.All</td>
+          <td>Copilot</td>
+          <td>Lista de conectores externos configurados para Copilot</td>
+          <td class="no">Não</td>
+          <td class="no">Não</td>
+        </tr>
+        <tr>
+          <td class="mono">Files.Read.All</td>
+          <td>SharePoint</td>
+          <td>Metadados de arquivos (nome, proprietário, permissões) — não conteúdo</td>
+          <td class="no">Não</td>
+          <td class="no">Não</td>
+        </tr>
+        <tr>
+          <td class="mono">IdentityRiskyUser.Read.All</td>
+          <td>Identidade</td>
+          <td>Lista de usuários marcados como "em risco" pelo Entra ID Protection</td>
+          <td class="no">Não</td>
+          <td class="no">Não</td>
+        </tr>
+        <tr>
+          <td class="mono">InformationProtectionPolicy.Read.All</td>
+          <td>Governança</td>
+          <td>Configuração de rótulos de sensibilidade do Microsoft Purview</td>
+          <td class="no">Não</td>
+          <td class="no">Não</td>
+        </tr>
+        <tr>
+          <td class="mono">Organization.Read.All</td>
+          <td>Baseline</td>
+          <td>Nome do tenant, licenças, configurações organizacionais</td>
+          <td class="no">Não</td>
+          <td class="no">Não</td>
+        </tr>
+        <tr>
+          <td class="mono">Policy.Read.All</td>
+          <td>Identidade</td>
+          <td>Políticas de Conditional Access (regras, condições)</td>
+          <td class="no">Não</td>
+          <td class="no">Não</td>
+        </tr>
+        <tr>
+          <td class="mono">RecordsManagement.Read.All</td>
+          <td>Governança</td>
+          <td>Políticas de retenção de dados configuradas</td>
+          <td class="no">Não</td>
+          <td class="no">Não</td>
+        </tr>
+        <tr>
+          <td class="mono">Reports.Read.All</td>
+          <td>Baseline</td>
+          <td>Relatórios de uso (sem identificar usuários nominais)</td>
+          <td class="no">Não</td>
+          <td class="no">Não</td>
+        </tr>
+        <tr>
+          <td class="mono">RoleManagement.Read.Directory</td>
+          <td>Identidade</td>
+          <td>Quais usuários têm funções administrativas (Global Admin, etc.)</td>
+          <td class="no">Não</td>
+          <td class="no">Não</td>
+        </tr>
+        <tr>
+          <td class="mono">SharePointTenantSettings.Read.All</td>
+          <td>SharePoint</td>
+          <td>Configurações globais de compartilhamento do SharePoint/OneDrive</td>
+          <td class="no">Não</td>
+          <td class="no">Não</td>
+        </tr>
+        <tr>
+          <td class="mono">Sites.Read.All</td>
+          <td>SharePoint</td>
+          <td>Configurações de permissão e propriedade de sites</td>
+          <td class="no">Não</td>
+          <td class="no">Não</td>
+        </tr>
+        <tr>
+          <td class="mono">User.Read.All</td>
+          <td>Baseline</td>
+          <td>Lista de usuários, contas guest, proprietários de grupos</td>
+          <td class="no">Não</td>
+          <td class="no">Não</td>
+        </tr>
+        <tr>
+          <td class="mono">UserAuthenticationMethod.Read.All</td>
+          <td>Identidade</td>
+          <td>Quais métodos de autenticação cada usuário tem registrados (MFA, SSPR)</td>
+          <td class="no">Não</td>
+          <td class="no">Não</td>
+        </tr>
+        <tr>
+          <td class="mono">Application.Read.All</td>
+          <td>Identidade</td>
+          <td>Lista de aplicações registradas e quais permissões ELAS têm</td>
+          <td class="no">Não</td>
+          <td class="no">Não</td>
+        </tr>
+        <tr>
+          <td class="mono">Team.ReadBasic.All</td>
+          <td>Teams</td>
+          <td>Configurações de governança do Microsoft Teams</td>
+          <td class="no">Não</td>
+          <td class="no">Não</td>
+        </tr>
+      </tbody>
+    </table>
+
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════
+     TAB 2 — PERMISSÕES EM DETALHE
+═══════════════════════════════════════════ -->
+<div id="permissoes" class="section">
+  <div class="container">
+
+    <div class="sec-title">Permissões em Detalhe</div>
+    <div class="sec-subtitle">Explicação técnica e em linguagem de negócio de cada permissão solicitada.</div>
+
+    <div class="perm-grid">
+
+      <!-- AuditLog.Read.All -->
+      <div class="perm-card">
+        <div class="perm-header">
+          <div class="perm-icon icon-governanca">📋</div>
+          <div>
+            <div class="perm-name">AuditLog.Read.All</div>
+          </div>
+          <span class="perm-category cat-governanca">Governança</span>
+        </div>
+        <div class="perm-body">
+          <div class="perm-section">
+            <div class="perm-section-label">O que é</div>
+            <div class="perm-section-text">
+              Permite ler o log de auditoria unificado do Microsoft 365 — o registro de todos os eventos administrativos e de login.
+              É o equivalente a ler o livro de registros de entrada de um prédio: você sabe <em>quando</em> e <em>quem</em> entrou,
+              mas não o que as pessoas falaram dentro.
+            </div>
+          </div>
+          <div class="perm-section">
+            <div class="perm-section-label">Para que usamos</div>
+            <div class="perm-section-text">
+              Detectar uso de protocolos de autenticação legados (SMTP, IMAP, POP3, Basic Auth) nos últimos 30 dias.
+              Esses protocolos ignoram MFA e Conditional Access, representando risco crítico de comprometimento de conta.
+            </div>
+          </div>
+          <div class="perm-section">
+            <div class="dos-donts">
+              <div class="dos">
+                <div class="dos-title">O que lemos</div>
+                <ul>
+                  <li>Tipo de cliente de autenticação usado</li>
+                  <li>UPN do usuário (para identificar contas expostas)</li>
+                  <li>Data/hora do evento</li>
+                </ul>
+              </div>
+              <div class="donts">
+                <div class="donts-title">O que não acessamos</div>
+                <ul>
+                  <li>Conteúdo de emails lidos</li>
+                  <li>Senhas ou credenciais</li>
+                  <li>Dados de negócio manipulados</li>
+                </ul>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Organization.Read.All + Reports.Read.All -->
+      <div class="perm-card">
+        <div class="perm-header">
+          <div class="perm-icon icon-baseline">🏢</div>
+          <div>
+            <div class="perm-name">Organization.Read.All &amp; Reports.Read.All</div>
+          </div>
+          <span class="perm-category cat-baseline">Baseline</span>
+        </div>
+        <div class="perm-body">
+          <div class="perm-section">
+            <div class="perm-section-label">O que é</div>
+            <div class="perm-section-text">
+              <strong>Organization.Read.All</strong>: lê o perfil da organização — nome do tenant, licenças Microsoft 365 ativas, configurações globais.
+              <br><br>
+              <strong>Reports.Read.All</strong>: lê relatórios de uso agregados dos serviços Microsoft 365 (quantos usuários ativos no Teams, SharePoint, etc.).
+              Importante: a Microsoft anonimiza esses relatórios por padrão — não é possível saber quem especificamente usou o quê.
+            </div>
+          </div>
+          <div class="perm-section">
+            <div class="perm-section-label">Para que usamos</div>
+            <div class="perm-section-text">
+              Identificar quais licenças o cliente tem (para saber se Entra ID P1/P2 estão ativas),
+              mapear adoção dos serviços, e detectar canais de comunicação em uso para avaliar risco de vazamento.
+            </div>
+          </div>
+          <div class="perm-section">
+            <div class="dos-donts">
+              <div class="dos">
+                <div class="dos-title">O que lemos</div>
+                <ul>
+                  <li>Nome e ID do tenant</li>
+                  <li>Lista de SKUs de licença</li>
+                  <li>Contagem de usuários ativos por serviço</li>
+                </ul>
+              </div>
+              <div class="donts">
+                <div class="donts-title">O que não acessamos</div>
+                <ul>
+                  <li>Identidade de usuários específicos em relatórios</li>
+                  <li>Conteúdo de qualquer comunicação</li>
+                  <li>Dados financeiros ou de negócio</li>
+                </ul>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- User.Read.All -->
+      <div class="perm-card">
+        <div class="perm-header">
+          <div class="perm-icon icon-baseline">👥</div>
+          <div>
+            <div class="perm-name">User.Read.All</div>
+          </div>
+          <span class="perm-category cat-baseline">Baseline</span>
+        </div>
+        <div class="perm-body">
+          <div class="perm-section">
+            <div class="perm-section-label">O que é</div>
+            <div class="perm-section-text">
+              Lê o diretório de usuários do Azure Active Directory / Entra ID.
+              É o equivalente a acessar a lista telefônica interna da empresa: nome, email corporativo, departamento, status da conta.
+            </div>
+          </div>
+          <div class="perm-section">
+            <div class="perm-section-label">Para que usamos</div>
+            <div class="perm-section-text">
+              Identificar: contas de usuários guest (externos), usuários inativos há mais de 90 dias,
+              proprietários de sites e grupos, e contas sem MFA configurado.
+            </div>
+          </div>
+          <div class="perm-section">
+            <div class="dos-donts">
+              <div class="dos">
+                <div class="dos-title">O que lemos</div>
+                <ul>
+                  <li>UPN, displayName, departamento</li>
+                  <li>Data do último login</li>
+                  <li>Tipo de conta (membro / guest)</li>
+                  <li>Flag onPremisesSyncEnabled</li>
+                </ul>
+              </div>
+              <div class="donts">
+                <div class="donts-title">O que não acessamos</div>
+                <ul>
+                  <li>Emails, calendários, arquivos de usuários</li>
+                  <li>Senhas ou métodos de autenticação (outra permissão separada)</li>
+                  <li>Dados de RH ou salários</li>
+                </ul>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- UserAuthenticationMethod.Read.All -->
+      <div class="perm-card">
+        <div class="perm-header">
+          <div class="perm-icon icon-identidade">🔐</div>
+          <div>
+            <div class="perm-name">UserAuthenticationMethod.Read.All</div>
+          </div>
+          <span class="perm-category cat-identidade">Identidade</span>
+        </div>
+        <div class="perm-body">
+          <div class="perm-section">
+            <div class="perm-section-label">O que é</div>
+            <div class="perm-section-text">
+              Lê <em>quais métodos de autenticação</em> cada usuário tem registrados — ex.: "tem autenticador configurado?", "tem número de telefone para SMS?".
+              <strong>Não lê senhas, tokens, ou segredos.</strong> É como saber que alguém tem um crachá, sem poder usá-lo.
+            </div>
+          </div>
+          <div class="perm-section">
+            <div class="perm-section-label">Para que usamos</div>
+            <div class="perm-section-text">
+              Calcular a cobertura de MFA (quantos % dos usuários têm fator adicional configurado)
+              e a cobertura de SSPR — Self-Service Password Reset (quantos usuários podem redefinir a própria senha sem chamar o helpdesk).
+            </div>
+          </div>
+          <div class="perm-section">
+            <span class="requires-badge">⚡ Requer Entra ID P1 ou superior</span>
+          </div>
+          <div class="perm-section">
+            <div class="dos-donts">
+              <div class="dos">
+                <div class="dos-title">O que lemos</div>
+                <ul>
+                  <li>Booleanos: isMfaRegistered, isSsprRegistered</li>
+                  <li>Tipo de método (authenticator app, telefone, etc.)</li>
+                </ul>
+              </div>
+              <div class="donts">
+                <div class="donts-title">O que não acessamos</div>
+                <ul>
+                  <li>Senhas em texto claro ou hash</li>
+                  <li>Tokens de sessão ativos</li>
+                  <li>Números de telefone completos</li>
+                </ul>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Policy.Read.All -->
+      <div class="perm-card">
+        <div class="perm-header">
+          <div class="perm-icon icon-identidade">🛡️</div>
+          <div>
+            <div class="perm-name">Policy.Read.All</div>
+          </div>
+          <span class="perm-category cat-identidade">Identidade</span>
+        </div>
+        <div class="perm-body">
+          <div class="perm-section">
+            <div class="perm-section-label">O que é</div>
+            <div class="perm-section-text">
+              Lê políticas de Conditional Access — as regras que definem quem pode acessar o quê, de onde, e com quais condições.
+              É como ler o regulamento de segurança de um prédio: você vê as regras, mas não pode modificá-las.
+            </div>
+          </div>
+          <div class="perm-section">
+            <div class="perm-section-label">Para que usamos</div>
+            <div class="perm-section-text">
+              Avaliar se existem políticas que bloqueiam acesso de localizações suspeitas, que exigem dispositivo gerenciado,
+              e para detectar contas break-glass (emergência) corretamente excluídas das políticas — mas ainda monitoradas.
+            </div>
+          </div>
+          <div class="perm-section">
+            <span class="requires-badge">⚡ Requer Entra ID P1 ou superior</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- RoleManagement.Read.Directory -->
+      <div class="perm-card">
+        <div class="perm-header">
+          <div class="perm-icon icon-identidade">👑</div>
+          <div>
+            <div class="perm-name">RoleManagement.Read.Directory</div>
+          </div>
+          <span class="perm-category cat-identidade">Identidade</span>
+        </div>
+        <div class="perm-body">
+          <div class="perm-section">
+            <div class="perm-section-label">O que é</div>
+            <div class="perm-section-text">
+              Lê quais usuários estão atribuídos a funções administrativas do Entra ID —
+              Global Admin, Exchange Admin, SharePoint Admin, etc.
+              Não pode criar, remover ou alterar atribuições de função.
+            </div>
+          </div>
+          <div class="perm-section">
+            <div class="perm-section-label">Para que usamos</div>
+            <div class="perm-section-text">
+              Identificar excesso de administradores globais (risco crítico), verificar se contas privilegiadas têm MFA,
+              e detectar contas break-glass que são Global Admins cloud-only (excluídas do Conditional Access para emergências).
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- IdentityRiskyUser.Read.All -->
+      <div class="perm-card">
+        <div class="perm-header">
+          <div class="perm-icon icon-identidade">⚠️</div>
+          <div>
+            <div class="perm-name">IdentityRiskyUser.Read.All</div>
+          </div>
+          <span class="perm-category cat-identidade">Identidade</span>
+        </div>
+        <div class="perm-body">
+          <div class="perm-section">
+            <div class="perm-section-label">O que é</div>
+            <div class="perm-section-text">
+              Lê a lista de usuários que o próprio Microsoft Entra ID Protection marcou como "em risco" —
+              baseado em machine learning que detecta comportamentos anômalos de login, credenciais vazadas, etc.
+              São dados que a Microsoft já calculou; nós apenas lemos o resultado.
+            </div>
+          </div>
+          <div class="perm-section">
+            <div class="perm-section-label">Para que usamos</div>
+            <div class="perm-section-text">
+              Quantificar usuários com risco alto ou médio no tenant, o que indica possíveis contas comprometidas
+              que precisam de ação imediata (reset de credenciais, investigação de sessões suspeitas).
+            </div>
+          </div>
+          <div class="perm-section">
+            <span class="requires-badge">⚡ Requer Entra ID P2</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Application.Read.All — DESTAQUE ESPECIAL -->
+      <div class="perm-card">
+        <div class="perm-header">
+          <div class="perm-icon icon-identidade">🔍</div>
+          <div>
+            <div class="perm-name">Application.Read.All</div>
+          </div>
+          <span class="perm-category cat-identidade">Identidade — Nova V2</span>
+        </div>
+        <div class="perm-body">
+          <div class="perm-section">
+            <div class="perm-section-label">O que é — explicação crítica para o cliente</div>
+            <div class="perm-section-text">
+              Esta é frequentemente a permissão que gera mais dúvida, porque o nome pode ser confundido com
+              "a app ganha acesso a tudo que outras apps têm acesso". <strong>Isso é falso.</strong>
+              <br><br>
+              <strong>O que Application.Read.All faz:</strong>
+              Permite listar as <em>aplicações registradas</em> no Entra ID do cliente e ler
+              <em>quais permissões essas aplicações declararam precisar</em>.
+              É como auditar a lista de chaves que outras pessoas têm — você não ganha as chaves; você vê quem as tem.
+            </div>
+          </div>
+          <div class="perm-section">
+            <div class="analogy">
+              <strong>Analogia:</strong> Imagine que sua empresa tem um cofre (o M365). Vários sistemas de terceiros (CRM, ERP, app de RH)
+              pediram cópias de chaves desse cofre. <em>Application.Read.All</em> nos deixa ver a lista de quem tem cópia de chave
+              e qual porta cada chave abre. <strong>Não nos dá nenhuma cópia de chave.</strong>
+              Nos permite dizer ao cliente: "o sistema X tem acesso à sua caixa de emails, isso é aceitável?"
+            </div>
+          </div>
+          <div class="perm-section">
+            <div class="perm-section-label">Para que usamos</div>
+            <div class="perm-section-text">
+              Detectar aplicações de terceiros que receberam permissões de alto risco como:
+              <code style="background:var(--surface2);padding:1px 5px;border-radius:3px;font-family:monospace;font-size:12px">Mail.ReadWrite</code>,
+              <code style="background:var(--surface2);padding:1px 5px;border-radius:3px;font-family:monospace;font-size:12px">Files.ReadWrite.All</code>,
+              <code style="background:var(--surface2);padding:1px 5px;border-radius:3px;font-family:monospace;font-size:12px">Directory.ReadWrite.All</code>.
+              Essas apps, se comprometidas, representam risco crítico ao tenant — e muitas vezes os administradores nem sabem que elas existem.
+              <br><br>
+              Também detectamos secrets (senhas de apps) próximos de expirar — que quando expiram causam falhas silenciosas em integrações críticas.
+            </div>
+          </div>
+          <div class="perm-section">
+            <div class="dos-donts">
+              <div class="dos">
+                <div class="dos-title">O que lemos</div>
+                <ul>
+                  <li>Nome e ID das aplicações registradas</li>
+                  <li>Lista de permissões que ELAS têm</li>
+                  <li>Data de expiração de secrets de apps</li>
+                </ul>
+              </div>
+              <div class="donts">
+                <div class="donts-title">O que não acessamos</div>
+                <ul>
+                  <li>Conteúdo acessado por essas apps</li>
+                  <li>Tokens ou credenciais das apps</li>
+                  <li>Capacidade de agir como essas apps</li>
+                </ul>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Sites.Read.All + Files.Read.All + SharePointTenantSettings -->
+      <div class="perm-card">
+        <div class="perm-header">
+          <div class="perm-icon icon-sharepoint">📂</div>
+          <div>
+            <div class="perm-name">Sites.Read.All · Files.Read.All · SharePointTenantSettings.Read.All</div>
+          </div>
+          <span class="perm-category cat-sharepoint">SharePoint</span>
+        </div>
+        <div class="perm-body">
+          <div class="perm-section">
+            <div class="perm-section-label">O que é — distinção crítica</div>
+            <div class="perm-section-text">
+              <strong>Sites.Read.All</strong>: acessa metadados de sites (nome, proprietário, configurações de permissão, usuários com acesso).
+              <strong>Files.Read.All</strong>: acessa metadados de arquivos (nome, proprietário, quando foi modificado, por quem foi compartilhado).
+              <br><br>
+              <strong>Nenhuma delas lê o conteúdo dos arquivos.</strong> A distinção na API do Microsoft Graph é clara:
+              para ler conteúdo de arquivo, a permissão necessária seria diferente e usaria endpoints <code>/content</code>.
+              Nosso código nunca chama esses endpoints.
+            </div>
+          </div>
+          <div class="perm-section">
+            <div class="analogy">
+              <strong>Analogia:</strong> É como ter acesso ao sistema de controle de uma biblioteca.
+              Você pode ver <em>quem tem permissão de acessar cada sala</em> e <em>quais livros existem nas prateleiras</em>,
+              mas não pode abrir e ler nenhum livro.
+            </div>
+          </div>
+          <div class="perm-section">
+            <div class="perm-section-label">Para que usamos</div>
+            <div class="perm-section-text">
+              Identificar sites sem proprietário definido, detectar compartilhamentos externos excessivos (oversharing),
+              verificar se o OneDrive está configurado para compartilhamento aberto externamente,
+              e calcular o risco de vazamento de dados via links compartilhados.
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- InformationProtectionPolicy + RecordsManagement -->
+      <div class="perm-card">
+        <div class="perm-header">
+          <div class="perm-icon icon-governanca">🏷️</div>
+          <div>
+            <div class="perm-name">InformationProtectionPolicy.Read.All · RecordsManagement.Read.All</div>
+          </div>
+          <span class="perm-category cat-governanca">Governança</span>
+        </div>
+        <div class="perm-body">
+          <div class="perm-section">
+            <div class="perm-section-label">O que é</div>
+            <div class="perm-section-text">
+              <strong>InformationProtectionPolicy.Read.All</strong>: lê as configurações dos rótulos de sensibilidade (Sensitivity Labels) do Microsoft Purview —
+              ex.: "Confidencial", "Uso Interno", "Público". Não lê documentos rotulados, apenas a configuração dos rótulos.
+              <br><br>
+              <strong>RecordsManagement.Read.All</strong>: lê as políticas de retenção de dados configuradas —
+              por exemplo, "emails de colaboradores devem ser mantidos por 7 anos". Não acessa os dados retidos.
+            </div>
+          </div>
+          <div class="perm-section">
+            <div class="perm-section-label">Para que usamos</div>
+            <div class="perm-section-text">
+              Verificar se o cliente tem classificação de dados configurada (requisito LGPD e ISO 27001)
+              e se tem políticas de retenção que atendam requisitos regulatórios e de compliance.
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ExternalConnection.Read.All -->
+      <div class="perm-card">
+        <div class="perm-header">
+          <div class="perm-icon icon-copilot">🤖</div>
+          <div>
+            <div class="perm-name">ExternalConnection.Read.All</div>
+          </div>
+          <span class="perm-category cat-copilot">Copilot</span>
+        </div>
+        <div class="perm-body">
+          <div class="perm-section">
+            <div class="perm-section-label">O que é</div>
+            <div class="perm-section-text">
+              Lê a lista de conectores externos configurados para o Microsoft Copilot — fontes de dados externas
+              (como sistemas de CRM, bases de conhecimento, portais externos) que foram integradas ao Copilot via Microsoft Graph Connectors.
+            </div>
+          </div>
+          <div class="perm-section">
+            <div class="perm-section-label">Para que usamos</div>
+            <div class="perm-section-text">
+              Avaliar a extensibilidade do Copilot: o cliente já conectou fontes externas de conhecimento?
+              Esses conectores têm governança adequada? Essa análise alimenta o score de "Copilot Readiness".
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Team.ReadBasic.All -->
+      <div class="perm-card">
+        <div class="perm-header">
+          <div class="perm-icon icon-teams">💬</div>
+          <div>
+            <div class="perm-name">Team.ReadBasic.All</div>
+          </div>
+          <span class="perm-category cat-teams">Teams — Nova V2</span>
+        </div>
+        <div class="perm-body">
+          <div class="perm-section">
+            <div class="perm-section-label">O que é</div>
+            <div class="perm-section-text">
+              Apesar do nome genérico, esta permissão dá acesso somente a configurações administrativas do Microsoft Teams —
+              não a mensagens, canais, arquivos ou reuniões.
+              Lê configurações como: acesso externo entre federações, permissões de instalação de apps de terceiros,
+              e políticas de governança de apps.
+            </div>
+          </div>
+          <div class="perm-section">
+            <div class="perm-section-label">Para que usamos</div>
+            <div class="perm-section-text">
+              Verificar se o tenant permite federação irrestrita com qualquer organização externa (risco de exfiltração via chat),
+              se usuários podem instalar apps de terceiros sem aprovação de admin,
+              e se existe governança de aplicações no Teams.
+            </div>
+          </div>
+          <div class="perm-section">
+            <div class="dos-donts">
+              <div class="dos">
+                <div class="dos-title">O que lemos</div>
+                <ul>
+                  <li>Configuração de acesso externo (B2B)</li>
+                  <li>Políticas de governança de apps</li>
+                  <li>Configurações de segurança globais</li>
+                </ul>
+              </div>
+              <div class="donts">
+                <div class="donts-title">O que não acessamos</div>
+                <ul>
+                  <li>Mensagens de chat ou canais</li>
+                  <li>Arquivos compartilhados no Teams</li>
+                  <li>Gravações de reuniões</li>
+                  <li>Lista de membros de equipes específicas</li>
+                </ul>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div><!-- /perm-grid -->
+
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════
+     TAB 3 — SCRIPTS POR PERFIL
+═══════════════════════════════════════════ -->
+<div id="scripts" class="section">
+  <div class="container">
+
+    <div class="sec-title">Scripts por Perfil de Stakeholder</div>
+    <div class="sec-subtitle">
+      Respostas prontas para as objeções mais comuns, segmentadas por perfil de interlocutor.
+    </div>
+
+    <!-- CTO/CISO -->
+    <div class="script-block">
+      <div class="script-header">
+        <div style="font-size:20px;">🏛️</div>
+        <div>
+          <div class="script-role">CTO / CISO</div>
+        </div>
+        <span class="script-role-badge" style="background:#e0e7ff;color:#3730a3;margin-left:auto;">Estratégico</span>
+      </div>
+      <div class="script-body">
+
+        <div class="script-q">Por que vocês precisam de tantas permissões? Parece demais.</div>
+        <div class="script-a-label">Resposta</div>
+        <div class="script-a">
+          Temos 15 permissões porque avaliamos 7 domínios de segurança distintos — identidade, compartilhamento, governança, email,
+          Teams e prontidão para IA. Cada permissão cobre exatamente um domínio e foi escolhida por ser a menor permissão possível
+          que entrega aquela análise. Nenhuma é Write. Para comparar: uma aplicação de produtividade típica como o Salesforce ou um CRM
+          pede permissões Write em calendários e emails — nossa plataforma não escreve nada.
+        </div>
+
+        <div class="script-q">Se vocês têm Application.Read.All, isso significa que vocês podem fazer o que essas apps fazem?</div>
+        <div class="script-a-label">Resposta</div>
+        <div class="script-a">
+          Não. <em>Application.Read.All</em> nos deixa ver a lista de apps e quais permissões elas têm — é uma permissão de auditoria,
+          não de delegação. É como ler o inventário de chaves do seu departamento de facilities sem ganhar nenhuma das chaves listadas.
+          Na API do Graph, para "agir como" outra app, seria necessário uma permissão completamente diferente, que não temos e não pedimos.
+        </div>
+
+        <div class="script-q">Como garantimos que os dados do nosso tenant não ficam misturados com os de outros clientes?</div>
+        <div class="script-a-label">Resposta</div>
+        <div class="script-a">
+          A plataforma usa multi-tenant isolation por design: cada tenant tem seu próprio token de acesso, armazenado de forma isolada.
+          O consentimento de cada cliente é específico para aquele tenant — o token gerado só serve para acessar aquele ambiente.
+          Não há token compartilhado entre clientes. Os dados são armazenados por tenant ID com separação lógica completa.
+        </div>
+
+        <div class="script-q">O que acontece se eu revogar o consentimento depois?</div>
+        <div class="script-a-label">Resposta</div>
+        <div class="script-a">
+          A revogação é imediata via portal Azure ou portal Microsoft 365. Ao revogar, o token expira na próxima chamada à API
+          e a plataforma para de ter acesso ao ambiente. Os dados já coletados ficam disponíveis para consulta local,
+          mas nenhum dado novo pode ser coletado. O processo é simples: Entra ID > Enterprise Applications > nossa app > Delete.
+        </div>
+
+      </div>
+    </div>
+
+    <!-- Jurídico/Compliance -->
+    <div class="script-block">
+      <div class="script-header">
+        <div style="font-size:20px;">⚖️</div>
+        <div>
+          <div class="script-role">Jurídico / Compliance / DPO</div>
+        </div>
+        <span class="script-role-badge" style="background:#fce7f3;color:#9d174d;margin-left:auto;">Regulatório</span>
+      </div>
+      <div class="script-body">
+
+        <div class="script-q">Que dados pessoais vocês coletam? Isso viola a LGPD?</div>
+        <div class="script-a-label">Resposta</div>
+        <div class="script-a">
+          Coletamos dados de configuração e metadados técnicos — UPNs (emails corporativos), nomes de usuários, status de MFA.
+          Esses dados são usados exclusivamente para produzir o relatório de assessment e são tratados como dados corporativos,
+          não dados sensíveis de pessoa física. A base legal é o legítimo interesse do controlador (art. 7º, IX, LGPD)
+          para fins de diagnóstico de segurança contratado pela própria organização. Não coletamos conteúdo de comunicações,
+          dados de saúde, dados financeiros pessoais ou qualquer dado sensível listado no art. 5º, II, LGPD.
+        </div>
+
+        <div class="script-q">Os dados ficam fora do Brasil? Isso viola a transferência internacional?</div>
+        <div class="script-a-label">Resposta</div>
+        <div class="script-a">
+          Os dados são coletados via Microsoft Graph (infraestrutura Microsoft) e processados na plataforma da BB.
+          A Microsoft já é coberta por cláusulas contratuais padrão e adequação para transferência internacional.
+          A LGPD permite transferência internacional quando há consentimento do titular ou cláusulas específicas —
+          no caso de dados corporativos de diagnóstico de segurança, o enquadramento é de serviço B2B contratado.
+          Se necessário, podemos assinar um DPA (Data Processing Agreement) específico.
+        </div>
+
+        <div class="script-q">Como garantem que os dados do nosso assessment não vazam para concorrentes?</div>
+        <div class="script-a-label">Resposta</div>
+        <div class="script-a">
+          Cada assessment é identificado por tenant ID e isolado logicamente. Os dados são armazenados com controle de acesso
+          por tenant. Não há repositório compartilhado de dados entre clientes. O relatório gerado pertence ao cliente —
+          a BB não usa dados de clientes para benchmarking ou treinamento de modelos sem consentimento explícito.
+        </div>
+
+      </div>
+    </div>
+
+    <!-- TI/Infraestrutura -->
+    <div class="script-block">
+      <div class="script-header">
+        <div style="font-size:20px;">🔧</div>
+        <div>
+          <div class="script-role">TI / Infraestrutura / Sysadmin</div>
+        </div>
+        <span class="script-role-badge" style="background:#d1fae5;color:#065f46;margin-left:auto;">Técnico</span>
+      </div>
+      <div class="script-body">
+
+        <div class="script-q">Como sei que a app só está lendo e não escrevendo nada?</div>
+        <div class="script-a-label">Resposta</div>
+        <div class="script-a">
+          Você pode verificar diretamente no portal Azure. Acesse: <strong>Entra ID → Enterprise Applications → [nome da app] → Permissions</strong>.
+          Todas as permissões listadas terminam em <code>.Read</code> ou <code>.Read.All</code> — nenhuma termina em <code>.Write</code>,
+          <code>.ReadWrite</code> ou <code>.Manage</code>. Você também pode ver o manifest JSON da App Registration
+          e confirmar que não há nenhuma permissão de escrita declarada.
+        </div>
+
+        <div class="script-q">A app vai impactar performance ou disponibilidade do nosso M365?</div>
+        <div class="script-a-label">Resposta</div>
+        <div class="script-a">
+          Não. A Microsoft Graph API é projetada para suportar cargas de consulta muito maiores que as nossas.
+          A plataforma respeita os rate limits da API (throttling automático) e o assessment completo consome
+          menos chamadas que uma sessão normal de usuário. O assessment dura aproximadamente 2-5 minutos
+          e não afeta a experiência de usuários finais.
+        </div>
+
+        <div class="script-q">Preciso criar alguma conta de serviço ou abrir portas no firewall?</div>
+        <div class="script-a-label">Resposta</div>
+        <div class="script-a">
+          Não é necessário criar conta de serviço, senha compartilhada, ou configurar firewall.
+          O acesso é feito via OAuth 2.0 Client Credentials — fluxo app-to-app da Microsoft, sem envolvimento de usuário.
+          O único requisito é que um Global Admin realize o consentimento uma única vez pela URL que geramos.
+          Após isso, a plataforma funciona de forma autônoma com os tokens gerados.
+        </div>
+
+        <div class="script-q">Como revogo o acesso depois?</div>
+        <div class="script-a-label">Resposta</div>
+        <div class="script-a">
+          <strong>Entra ID → Enterprise Applications → [nome da app] → Properties → Delete</strong>.
+          A revogação é imediata. Alternativamente: <strong>App Registrations → [app] → API permissions → Revoke admin consent</strong>.
+          Nenhuma ação adicional é necessária do lado da plataforma — o token para de funcionar no próximo uso.
+        </div>
+
+      </div>
+    </div>
+
+    <!-- Diretoria/Board -->
+    <div class="script-block">
+      <div class="script-header">
+        <div style="font-size:20px;">📊</div>
+        <div>
+          <div class="script-role">Diretoria / Board</div>
+        </div>
+        <span class="script-role-badge" style="background:#fff3cd;color:#92400e;margin-left:auto;">Executivo</span>
+      </div>
+      <div class="script-body">
+
+        <div class="script-q">O que estamos autorizando exatamente e qual o risco para a empresa?</div>
+        <div class="script-a-label">Resposta</div>
+        <div class="script-a">
+          Estamos autorizando uma plataforma de diagnóstico a ler configurações técnicas do nosso ambiente Microsoft 365 —
+          como um médico lendo os exames do paciente, não realizando cirurgia. A plataforma não pode enviar emails,
+          deletar arquivos, criar usuários ou modificar qualquer configuração. O risco é equivalente ao de contratar
+          uma auditoria externa: o valor entregue (identificação de riscos reais) supera amplamente o risco residual,
+          e o acesso pode ser revogado a qualquer momento pelo nosso time de TI.
+        </div>
+
+        <div class="script-q">Por que precisamos fazer isso agora?</div>
+        <div class="script-a-label">Resposta</div>
+        <div class="script-a">
+          Regulações como LGPD exigem medidas técnicas de segurança documentadas — e auditores perguntam especificamente
+          sobre MFA, Conditional Access, classificação de dados e retenção. Este assessment produz evidência documentada
+          do estado atual, identifica lacunas antes de um incidente ou auditoria, e cria o roadmap de remediação priorizado.
+          O custo de não fazer é uma multa de até 2% do faturamento ou, pior, um incidente de segurança evitável.
+        </div>
+
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════
+     TAB 4 — PROVA TÉCNICA
+═══════════════════════════════════════════ -->
+<div id="prova" class="section">
+  <div class="container">
+
+    <div class="sec-title">Prova Técnica — Least Privilege</div>
+    <div class="sec-subtitle">
+      Demonstração verificável de que a plataforma usa apenas o mínimo necessário de acesso.
+    </div>
+
+    <div class="callout green">
+      <div class="callout-icon">✅</div>
+      <div class="callout-body">
+        <div class="callout-title">Como qualquer admin pode verificar independentemente</div>
+        <div class="callout-text">
+          Após o consentimento, acesse <strong>Entra ID → Enterprise Applications → [nome da app] → Permissions</strong>.
+          A lista de permissões aprovadas deve ser idêntica à tabela abaixo.
+          Confirme que não existe nenhuma permissão com <code>.Write</code>, <code>.ReadWrite</code> ou <code>.Manage</code>.
+        </div>
+      </div>
+    </div>
+
+    <h3 class="subsec">Comparativo: nossa plataforma vs. apps comuns</h3>
+
+    <table class="proof-table">
+      <thead>
+        <tr>
+          <th>Capacidade</th>
+          <th>Nossa Plataforma</th>
+          <th>App CRM típica</th>
+          <th>App de Email típica</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>Ler emails de usuários</td>
+          <td class="no">Não ✗</td>
+          <td class="yes">Sim ✓</td>
+          <td class="yes">Sim ✓</td>
+        </tr>
+        <tr>
+          <td>Enviar emails</td>
+          <td class="no">Não ✗</td>
+          <td class="yes">Frequente ✓</td>
+          <td class="yes">Sim ✓</td>
+        </tr>
+        <tr>
+          <td>Ler/editar arquivos no SharePoint</td>
+          <td class="no">Apenas metadados ✗</td>
+          <td class="yes">Sim (conteúdo) ✓</td>
+          <td class="no">Não ✗</td>
+        </tr>
+        <tr>
+          <td>Criar usuários no Entra ID</td>
+          <td class="no">Não ✗</td>
+          <td class="no">Não ✗</td>
+          <td class="no">Não ✗</td>
+        </tr>
+        <tr>
+          <td>Modificar políticas de segurança</td>
+          <td class="no">Não ✗</td>
+          <td class="no">Não ✗</td>
+          <td class="no">Não ✗</td>
+        </tr>
+        <tr>
+          <td>Ler configurações de segurança</td>
+          <td class="yes">Sim — este é o propósito ✓</td>
+          <td class="no">Não ✗</td>
+          <td class="no">Não ✗</td>
+        </tr>
+        <tr>
+          <td>Ler mensagens do Teams</td>
+          <td class="no">Não ✗</td>
+          <td class="yes">Algumas ✓</td>
+          <td class="no">Não ✗</td>
+        </tr>
+        <tr>
+          <td>Acesso a apps de terceiros no tenant</td>
+          <td class="no">Apenas lista + permissões ✗</td>
+          <td class="no">Não ✗</td>
+          <td class="no">Não ✗</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <h3 class="subsec">O que Mail.ReadWrite e Files.ReadWrite.All significam no contexto do assessment</h3>
+
+    <div class="callout amber">
+      <div class="callout-icon">💡</div>
+      <div class="callout-body">
+        <div class="callout-title">Pergunta frequente: "Se vocês têm Application.Read.All e uma app no tenant tem Mail.ReadWrite — vocês conseguem ler emails?"</div>
+        <div class="callout-text">
+          <strong>Não.</strong> <em>Application.Read.All</em> nos deixa <em>saber</em> que essa app tem <em>Mail.ReadWrite</em>.
+          Não nos transfere a permissão. Para ter <em>Mail.ReadWrite</em>, precisaríamos ter solicitado essa permissão explicitamente
+          — e ela não está na nossa lista de consentimento. A API do Microsoft Graph não permite delegação implícita de permissões.
+        </div>
+      </div>
+    </div>
+
+    <div class="perm-section" style="margin-top:24px;">
+      <div class="perm-section-label">Permissões de alto risco que detectamos em apps de terceiros (mas não temos)</div>
+    </div>
+
+    <table class="proof-table">
+      <thead>
+        <tr>
+          <th>Permissão detectável em apps de terceiros</th>
+          <th>O que essa permissão permite</th>
+          <th>Nossa plataforma tem?</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td class="mono">Mail.ReadWrite</td>
+          <td>Ler, criar, mover, deletar emails de qualquer usuário</td>
+          <td class="no">Não ✗</td>
+        </tr>
+        <tr>
+          <td class="mono">Files.ReadWrite.All</td>
+          <td>Ler, criar, editar, deletar arquivos em qualquer SharePoint/OneDrive</td>
+          <td class="no">Não ✗</td>
+        </tr>
+        <tr>
+          <td class="mono">Directory.ReadWrite.All</td>
+          <td>Criar/deletar usuários, grupos, atribuições de papel</td>
+          <td class="no">Não ✗</td>
+        </tr>
+        <tr>
+          <td class="mono">User.ReadWrite.All</td>
+          <td>Modificar perfil, senha e atributos de qualquer usuário</td>
+          <td class="no">Não ✗</td>
+        </tr>
+        <tr>
+          <td class="mono">RoleManagement.ReadWrite.Directory</td>
+          <td>Atribuir e remover papéis administrativos</td>
+          <td class="no">Não ✗</td>
+        </tr>
+        <tr>
+          <td class="mono">Sites.ReadWrite.All</td>
+          <td>Criar, editar, deletar conteúdo em qualquer site SharePoint</td>
+          <td class="no">Não ✗</td>
+        </tr>
+        <tr>
+          <td class="mono">Group.ReadWrite.All</td>
+          <td>Criar, modificar, deletar grupos e membros</td>
+          <td class="no">Não ✗</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <div class="callout purple">
+      <div class="callout-icon">🛡️</div>
+      <div class="callout-body">
+        <div class="callout-title">Argumento final de segurança</div>
+        <div class="callout-text">
+          Nossa plataforma <em>detecta</em> quando apps de terceiros têm essas permissões perigosas no tenant do cliente —
+          e reporta isso como risco no assessment. Isso significa que estamos do mesmo lado que o time de segurança do cliente,
+          não do lado das ameaças. Se a plataforma tivesse más intenções, não reportaria esse risco — seria uma vulnerabilidade que exploraria, não revelaria.
+        </div>
+      </div>
+    </div>
+
+    <h3 class="subsec">Checklist de verificação independente para o admin</h3>
+
+    <div class="callout blue">
+      <div class="callout-icon">🔍</div>
+      <div class="callout-body">
+        <div class="callout-title">Passos para verificar o que foi concedido (após o consent)</div>
+        <div class="callout-text" style="line-height:2;">
+          1. Acesse <strong>portal.azure.com</strong> com conta de administrador<br>
+          2. Navegue para <strong>Microsoft Entra ID → Enterprise Applications</strong><br>
+          3. Encontre a aplicação <strong>"BB Assessment Platform"</strong><br>
+          4. Clique em <strong>Permissions → Admin consent tab</strong><br>
+          5. Confirme que todas as permissões listadas contêm <code>.Read</code> — nenhuma com <code>.Write</code><br>
+          6. Para ver o uso em tempo real: <strong>Entra ID → Sign-in logs</strong> — filtre pela aplicação e veja exatamente quais chamadas foram feitas
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ─── FOOTER ─── -->
+<footer class="page-footer">
+  BB Assessment Platform · Documento para uso interno e pré-venda · Não distribuir externamente sem aprovação
+</footer>
+
+<script>
+  const tabs = document.querySelectorAll('.tab');
+  const sections = document.querySelectorAll('.section');
+
+  tabs.forEach(tab => {
+    tab.addEventListener('click', () => {
+      const target = tab.dataset.tab;
+
+      tabs.forEach(t => t.classList.remove('active'));
+      sections.forEach(s => s.classList.remove('active'));
+
+      tab.classList.add('active');
+      document.getElementById(target).classList.add('active');
+    });
+  });
+</script>
+
+</body>
+</html>
