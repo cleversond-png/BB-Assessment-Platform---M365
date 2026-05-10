@@ -25,6 +25,7 @@ const COLLECTOR_META = {
   // SharePoint
   permissions:        { label: 'Permissões / Sharing',   weight: 3, requires: 'Sites.Read.All' },
   ownership:          { label: 'Ownership de Sites',      weight: 3, requires: 'Sites.Read.All, User.Read.All' },
+  oversharing:        { label: 'Oversharing (Everyone)',  weight: 3, requires: 'Sites.Read.All' },
   staleContent:       { label: 'Conteúdo Obsoleto',       weight: 2, requires: 'Sites.Read.All' },
   files:              { label: 'Arquivos (grandes/dupl)', weight: 2, requires: 'Sites.Read.All, Files.Read.All' },
   storage:            { label: 'Armazenamento',           weight: 2, requires: 'Sites.Read.All' },
@@ -61,7 +62,7 @@ function collectorMetric(id, data) {
   const s = data.summary || {}
   switch (id) {
     case 'tenantInfo': return { value: data.defaultDomain || data.displayName || '—', sub: data.country || 'domínio padrão' }
-    case 'mfa': return { value: `${s.coveragePercent ?? '?'}%`, sub: `${s.registered ?? '?'} / ${s.total ?? '?'} usuários` }
+    case 'mfa': return { value: `${s.coveragePercent ?? '—'}%`, sub: (s.mfaRegistered != null && s.total != null) ? `${s.mfaRegistered} / ${s.total} usuários` : 'usuários com MFA' }
     case 'conditionalAccess': return { value: `${s.enabled ?? 0}`, sub: 'políticas ativas' }
     case 'privileged': return { value: `${s.globalAdminCount ?? '?'}`, sub: 'Global Admins' }
     case 'guests': return { value: `${s.total ?? '?'}`, sub: `${s.inactive ?? 0} inativos` }
@@ -71,6 +72,7 @@ function collectorMetric(id, data) {
     case 'usage': return { value: `${s.adoptionPercent ?? '?'}%`, sub: 'adoção M365 (30d)' }
     case 'permissions': return { value: s.anonymousLinksAllowed ? 'Habilitado' : 'Restrito', sub: 'links anônimos' }
     case 'ownership': return { value: `${(s.ownerlessCount || 0) + (s.disabledOwnerCount || 0)}`, sub: 'sites sem owner válido' }
+    case 'oversharing': return { value: `${s.sitesWithEveryoneCount ?? 0}`, sub: `sites com "Everyone" de ${s.sitesSampled ?? '?'} amostrados` }
     case 'staleContent': return { value: `${s.staleRatioPercent ?? '?'}%`, sub: `sites inativos >${s.stalePeriodDays ?? 90}d` }
     case 'files': return { value: `${s.largeFilesCount ?? 0}`, sub: 'arquivos >100MB' }
     case 'storage': return { value: `${s.utilizationPercent ?? '?'}%`, sub: `${formatGB(s.totalStorageGB)} de ${formatGB(s.totalAllocatedGB)}` }
@@ -94,7 +96,7 @@ function collectorDetail(id, data) {
       const created = data.createdDateTime ? new Date(data.createdDateTime).toLocaleDateString('pt-BR') : '?'
       return `${data.displayName || '?'}. Domínio padrão: ${data.defaultDomain || '?'}. País: ${data.country || '?'}. ${domains} domínio(s) verificado(s). Tenant criado em ${created}.`
     }
-    case 'mfa': return `${s.registered ?? '?'} usuários com pelo menos um método MFA registrado. ${(s.total || 0) - (s.registered || 0)} contas sem método.`
+    case 'mfa': return `${s.mfaRegistered ?? '?'} usuários com pelo menos um método MFA registrado. ${s.total != null && s.mfaRegistered != null ? s.total - s.mfaRegistered : '?'} contas sem método.`
     case 'conditionalAccess': return s.enabled === 0 ? 'Nenhuma política de CA configurada.' : `${s.enabled} políticas ativas. MFA enforced: ${s.mfaEnforced ? 'sim' : 'não'}. Legacy auth bloqueado: ${s.blockLegacyAuth ? 'sim' : 'não'}.`
     case 'privileged': return `${s.globalAdminCount ?? '?'} Global Administrators. PIM em uso: ${s.pimEnabled ? 'sim' : 'não'}.`
     case 'guests': return `${s.total ?? '?'} contas guest. ${s.inactive ?? 0} inativas há >90 dias.`
@@ -120,8 +122,13 @@ function collectorDetail(id, data) {
       const sharingLabel = sharingLabels[s.sharingCapability] || s.sharingCapability || '?'
       return `Links anônimos: ${s.anonymousLinksAllowed ? 'habilitados' : 'desabilitados'}. Nível de sharing: ${sharingLabel}.`
     }
-    case 'ownership': return `${s.ownerlessCount ?? 0} sites sem owner. ${s.disabledOwnerCount ?? 0} sites com owner desativado.`
-    case 'staleContent': return `${s.staleSiteCount ?? 0} sites sem atividade há >${s.stalePeriodDays ?? 90} dias (${s.staleRatioPercent ?? '?'}% do total).`
+    case 'ownership': return `${s.ownerlessCount ?? 0} sites sem owner. ${s.disabledOwnerCount ?? 0} sites com owner desativado. ${s.groupsChecked ?? 0} groups M365 verificados.`
+    case 'oversharing': {
+      const count = s.sitesWithEveryoneCount ?? 0
+      if (count === 0) return `Nenhum site com permissão "Everyone" detectado nos ${s.sitesSampled ?? 0} sites amostrados. Risco de oversharing interno não identificado.`
+      return `${count} site(s) com permissão explícita para "Everyone" — qualquer usuário do tenant acessa esses conteúdos. Risco crítico para adoção do Copilot.`
+    }
+    case 'staleContent': return `${s.staleSiteCount ?? 0} sites sem atividade há >${s.stalePeriodDays ?? 180} dias (${s.staleRatioPercent ?? '?'}% do total de ${s.totalSites ?? '?'} sites).`
     case 'files': return `${s.largeFilesCount ?? 0} arquivos acima de 100MB. ${s.duplicateGroupsCount ?? 0} grupos de duplicatas.`
     case 'storage': return `${s.totalStorageGB ?? '?'} GB usados de ${s.totalAllocatedGB ?? '?'} GB alocados (${s.utilizationPercent ?? '?'}% utilização). ${s.sitesCritical ?? 0} sites críticos, ${s.sitesNearing ?? 0} próximos do limite.`
     case 'sensitivityLabels': return `${s.totalLabels ?? 0} labels publicadas. ${s.sublabelCount ?? 0} sublabels. Auto-label: ${s.autoLabelEnabled ? 'ativo' : 'inativo'}.`
@@ -666,6 +673,174 @@ function PrivilegedDetailContent({ data }) {
   )
 }
 
+function OwnershipDetailContent({ data }) {
+  const s = data?.summary || {}
+  const ownerlessSites = data?.ownerlessSites || []
+  const disabledOwnerSites = data?.disabledOwnerSites || []
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 12 }}>
+        {[
+          { label: 'Sites sem owner', value: s.ownerlessCount ?? 0 },
+          { label: 'Owner desativado', value: s.disabledOwnerCount ?? 0 },
+          { label: 'Groups verificados', value: s.groupsChecked ?? 0, neutral: true },
+        ].map(m => (
+          <div key={m.label} style={{ padding: '10px 12px', borderRadius: 8, background: 'var(--bg-subtle)', border: '1px solid var(--border-1)' }}>
+            <div className="t-2xs" style={{ marginBottom: 4 }}>{m.label}</div>
+            <div style={{ fontWeight: 700, fontSize: 22, lineHeight: 1, color: m.neutral ? 'var(--fg-1)' : m.value > 0 ? 'var(--score-0)' : 'var(--score-5)' }}>{m.value}</div>
+          </div>
+        ))}
+      </div>
+
+      {ownerlessSites.length > 0 && (
+        <div>
+          <div className="t-2xs" style={{ marginBottom: 8 }}>Sites sem owner ({ownerlessSites.length})</div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+            {ownerlessSites.map((site, i) => (
+              <div key={i} style={{ padding: '8px 10px', borderRadius: 6, background: 'var(--bg-subtle)', border: '1px solid var(--border-1)' }}>
+                <div className="t-sm" style={{ fontWeight: 500 }}>{site.displayName || '—'}</div>
+                {site.mail && <div className="t-xs" style={{ color: 'var(--fg-3)' }}>{site.mail}</div>}
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {disabledOwnerSites.length > 0 && (
+        <div>
+          <div className="t-2xs" style={{ marginBottom: 8 }}>Owner desativado ({disabledOwnerSites.length})</div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+            {disabledOwnerSites.map((site, i) => (
+              <div key={i} style={{ padding: '8px 10px', borderRadius: 6, background: 'var(--bg-subtle)', border: '1px solid var(--border-1)' }}>
+                <div className="t-sm" style={{ fontWeight: 500 }}>{site.displayName || '—'}</div>
+                {site.mail && <div className="t-xs" style={{ color: 'var(--fg-3)' }}>{site.mail}</div>}
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {ownerlessSites.length === 0 && disabledOwnerSites.length === 0 && (
+        <div className="t-sm" style={{ color: 'var(--score-5)' }}>Todos os sites verificados possuem owner ativo.</div>
+      )}
+
+      {s.note && <div className="t-xs" style={{ color: 'var(--fg-3)' }}>{s.note}</div>}
+    </div>
+  )
+}
+
+function StaleContentDetailContent({ data }) {
+  const s = data?.summary || {}
+  const staleSites = data?.staleSites || []
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 12 }}>
+        {[
+          { label: `Inativos (>${s.stalePeriodDays ?? 180}d)`, value: s.staleSiteCount ?? 0, alert: true },
+          { label: 'Sites ativos', value: s.activeSiteCount ?? 0, alert: false },
+          { label: 'Total de sites', value: s.totalSites ?? 0, neutral: true },
+        ].map(m => (
+          <div key={m.label} style={{ padding: '10px 12px', borderRadius: 8, background: 'var(--bg-subtle)', border: '1px solid var(--border-1)' }}>
+            <div className="t-2xs" style={{ marginBottom: 4 }}>{m.label}</div>
+            <div style={{ fontWeight: 700, fontSize: 22, lineHeight: 1, color: m.neutral ? 'var(--fg-1)' : m.alert ? (m.value > 0 ? 'var(--score-0)' : 'var(--score-5)') : 'var(--score-5)' }}>{m.value}</div>
+          </div>
+        ))}
+      </div>
+
+      {staleSites.length > 0 && (
+        <div>
+          <div className="t-2xs" style={{ marginBottom: 8 }}>Top {staleSites.length} sites inativos</div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+            {staleSites.map((site, i) => (
+              <div key={i} style={{
+                display: 'grid', gridTemplateColumns: '1fr auto', gap: 10, alignItems: 'center',
+                padding: '8px 10px', borderRadius: 6, background: 'var(--bg-subtle)', border: '1px solid var(--border-1)',
+              }}>
+                <div style={{ minWidth: 0 }}>
+                  <div className="t-sm" style={{ fontWeight: 500, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                    {site.displayName || '—'}
+                  </div>
+                  <div className="t-xs" style={{ color: 'var(--fg-3)' }}>
+                    {site.lastModifiedDateTime
+                      ? `Última atividade: ${new Date(site.lastModifiedDateTime).toLocaleDateString('pt-BR')}`
+                      : 'Sem atividade registrada'}
+                  </div>
+                </div>
+                {site.daysSinceActivity != null && (
+                  <span style={{ fontFamily: 'var(--font-mono)', fontSize: 11, fontWeight: 600, color: 'var(--score-0)', whiteSpace: 'nowrap', flexShrink: 0 }}>
+                    {site.daysSinceActivity}d
+                  </span>
+                )}
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}
+
+function OversharingDetailContent({ data }) {
+  const s = data?.summary || {}
+  const sites = data?.sitesWithEveryone || []
+  const count = s.sitesWithEveryoneCount ?? 0
+
+  if (count === 0) {
+    return (
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+        <div style={{ padding: '12px 16px', borderRadius: 8, background: 'var(--ok-bg)', border: '1px solid var(--ok-bd)' }}>
+          <span style={{ color: 'var(--ok-fg)', fontWeight: 600, fontSize: 14 }}>
+            Nenhum site com permissão aberta para "Everyone" nos {s.sitesSampled ?? 0} sites amostrados.
+          </span>
+        </div>
+        {s.coverage && <div className="t-xs" style={{ color: 'var(--fg-3)' }}>Cobertura: {s.coverage}</div>}
+      </div>
+    )
+  }
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+      <div style={{ padding: '10px 14px', borderRadius: 8, background: 'var(--sev-critical-bg)', border: '1px solid var(--sev-critical-bd)' }}>
+        <span style={{ color: 'var(--sev-critical-fg)', fontWeight: 600 }}>
+          {count} site{count > 1 ? 's' : ''} com acesso aberto para todos os usuários do tenant
+        </span>
+      </div>
+      <div>
+        <div className="t-2xs" style={{ marginBottom: 8 }}>Sites com permissão "Everyone"</div>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+          {sites.map((site, i) => (
+            <div key={i} style={{
+              display: 'grid', gridTemplateColumns: '1fr auto', gap: 10, alignItems: 'center',
+              padding: '8px 10px', borderRadius: 6, background: 'var(--bg-subtle)', border: '1px solid var(--border-1)',
+            }}>
+              <div style={{ minWidth: 0 }}>
+                <div className="t-sm" style={{ fontWeight: 500, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                  {site.displayName || '—'}
+                </div>
+                <div className="t-xs" style={{ color: 'var(--fg-3)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                  {site.webUrl || '—'}
+                </div>
+              </div>
+              {site.roles?.length > 0 && (
+                <span style={{
+                  fontFamily: 'var(--font-mono)', fontSize: 10, fontWeight: 600,
+                  padding: '2px 6px', borderRadius: 4, flexShrink: 0, whiteSpace: 'nowrap',
+                  background: 'var(--sev-critical-bg)', color: 'var(--sev-critical-fg)', border: '1px solid var(--sev-critical-bd)',
+                }}>
+                  {site.roles.join(', ')}
+                </span>
+              )}
+            </div>
+          ))}
+        </div>
+      </div>
+      {s.coverage && <div className="t-xs" style={{ color: 'var(--fg-3)' }}>Cobertura: {s.coverage}</div>}
+    </div>
+  )
+}
+
 function ScoreChip({ value, compact }) {
   const color = scoreColor(value)
   if (compact) {
@@ -702,12 +877,15 @@ function CollectorDetail({ id, data, weight }) {
       </div>
       <div>
         <div className="t-2xs" style={{ marginBottom: 6 }}>Achado</div>
-        {id === 'usage'       ? <UsageDetailContent data={data} />
-          : id === 'licensing'  ? <LicensingDetailContent data={data} />
-          : id === 'users'      ? <UsersDetailContent data={data} />
-          : id === 'storage'    ? <StorageDetailContent data={data} />
-          : id === 'privileged' ? <PrivilegedDetailContent data={data} />
-          : id === 'files'      ? <FilesDetailContent data={data} />
+        {id === 'usage'        ? <UsageDetailContent data={data} />
+          : id === 'licensing'   ? <LicensingDetailContent data={data} />
+          : id === 'users'       ? <UsersDetailContent data={data} />
+          : id === 'storage'     ? <StorageDetailContent data={data} />
+          : id === 'privileged'  ? <PrivilegedDetailContent data={data} />
+          : id === 'files'       ? <FilesDetailContent data={data} />
+          : id === 'ownership'   ? <OwnershipDetailContent data={data} />
+          : id === 'staleContent'? <StaleContentDetailContent data={data} />
+          : id === 'oversharing' ? <OversharingDetailContent data={data} />
           : <div className="t-body">{detail}</div>
         }
       </div>

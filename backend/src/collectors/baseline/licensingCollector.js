@@ -86,11 +86,23 @@ function getDisplayName(skuPartNumber) {
   return SKU_DISPLAY_NAMES[skuPartNumber] || skuPartNumber;
 }
 
-// Detecta o tier do Entra ID a partir dos SKUs ativos
+// Detecta o tier do Entra ID a partir dos SKUs ativos.
+// Também verifica servicePlans dentro de cada SKU pois muitos planos (ex: M365 Business Premium / SPB)
+// incluem AAD_PREMIUM como service plan embutido, sem um SKU standalone separado.
 function detectEntraIdTier(skus) {
   const parts = skus.map((s) => s.skuPartNumber?.toUpperCase() || '');
-  if (parts.some((p) => p === 'AAD_PREMIUM_P2' || p.includes('ENTRA_P2') || p.includes('EMS_P2') || p.includes('EMSPREMIUM'))) return 'P2';
-  if (parts.some((p) => p === 'AAD_PREMIUM' || p.includes('ENTRA_P1') || p.includes('EMS'))) return 'P1';
+  const planNames = skus.flatMap((s) => (s.servicePlans || []).map((p) => p.servicePlanName?.toUpperCase() || ''));
+
+  if (
+    parts.some((p) => p === 'AAD_PREMIUM_P2' || p.includes('ENTRA_P2') || p.includes('EMS_P2') || p.includes('EMSPREMIUM')) ||
+    planNames.some((p) => p === 'AAD_PREMIUM_P2')
+  ) return 'P2';
+
+  if (
+    parts.some((p) => p === 'AAD_PREMIUM' || p.includes('ENTRA_P1') || p.includes('EMS')) ||
+    planNames.some((p) => p === 'AAD_PREMIUM')
+  ) return 'P1';
+
   if (parts.some((p) => p === 'AAD_BASIC')) return 'Basic';
   return 'Free';
 }
