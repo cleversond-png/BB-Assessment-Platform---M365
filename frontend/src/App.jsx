@@ -10,7 +10,7 @@ import HistoryScreen from './components/screens/HistoryScreen.jsx'
 import ConsentScreen from './components/screens/ConsentScreen.jsx'
 import ZeroTrustScreen from './components/screens/ZeroTrustScreen.jsx'
 
-const DOMAIN_IDS = ['entraId', 'sharePoint', 'governance', 'emailSecurity']
+const DOMAIN_IDS = ['entraId', 'sharePoint', 'governance', 'emailSecurity', 'teams']
 
 function scoreColor(v) {
   if (v == null) return 'var(--fg-3)'
@@ -198,13 +198,14 @@ export default function App() {
         { key: 'sharePoint',    label: 'SharePoint' },
         { key: 'governance',    label: 'Governança' },
         { key: 'emailSecurity', label: 'Email Security' },
+        { key: 'teams',         label: 'Teams' },
       ]
       const doneCount = progress ? Object.values(progress.domains || {}).filter(v => v === 'done' || v === 'error').length : 0
       return (
         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100%', gap: 20 }}>
           <div style={{ width: 40, height: 40, border: '3px solid var(--border-1)', borderTopColor: 'var(--brand-500)', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} />
           <div className="t-sm" style={{ color: 'var(--fg-2)' }}>
-            {progress ? `Coletando dados… ${doneCount}/5 domínios` : 'Iniciando assessment…'}
+            {progress ? `Coletando dados… ${doneCount}/6 domínios` : 'Iniciando assessment…'}
           </div>
           {progress && (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 6, minWidth: 200 }}>
