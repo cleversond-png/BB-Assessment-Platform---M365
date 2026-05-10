@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import { PageHeader, Card, Btn, Pill, ScoreDonut, Icon } from '../primitives/index.jsx'
 
 function ChecklistRow({ check, divider }) {
@@ -25,6 +26,67 @@ function ChecklistRow({ check, divider }) {
       </div>
       <Pill tone={tone} dot>{check.unavailable ? 'Não verificado' : check.passed ? 'Atendido' : 'Pendente'}</Pill>
       <span className="t-xs">peso <b>{check.weight}</b> · <span style={{ color: 'var(--fg-1)' }}>{check.impact}</span></span>
+    </div>
+  )
+}
+
+function ReadinessExplainerCard({ checks }) {
+  const [open, setOpen] = useState(false)
+  if (!checks?.length) return null
+
+  const GREEN_BG  = '#f0fdf4'
+  const GREEN_BD  = '#bbf7d0'
+  const GREEN_FG  = '#166534'
+  const GREEN_ROW = '#dcfce7'
+  const GREEN_ICN = '#86efac'
+
+  const impactLabel = { critical: 'Crítico', high: 'Alto', medium: 'Médio' }
+
+  return (
+    <div style={{ marginBottom: 24, border: `1px solid ${GREEN_BD}`, borderRadius: 'var(--r-xl)', overflow: 'hidden' }}>
+      <div
+        onClick={() => setOpen(!open)}
+        style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '11px 18px', background: GREEN_BG, cursor: 'pointer', userSelect: 'none' }}
+      >
+        <Icon name="book-open" size={15} style={{ color: GREEN_FG, flexShrink: 0 }} />
+        <span style={{ fontWeight: 600, fontSize: 13, color: GREEN_FG, flex: 1 }}>O que significa cada pré-requisito?</span>
+        <span style={{ fontSize: 11, color: GREEN_FG, opacity: 0.7, marginRight: 4 }}>{open ? 'Fechar' : 'Ver explicações'}</span>
+        <Icon name={open ? 'chevron-up' : 'chevron-down'} size={14} style={{ color: GREEN_FG }} />
+      </div>
+
+      {open && (
+        <div style={{ background: GREEN_BG }}>
+          {checks.map((check) => {
+            const unavail = check.unavailable
+            const passed  = !unavail && check.passed
+
+            const iconName = unavail ? 'minus' : passed ? 'check' : 'x'
+            const iconBg   = unavail ? 'var(--bg-subtle)' : passed ? GREEN_ROW : 'var(--sev-critical-bg)'
+            const iconBd   = unavail ? 'var(--border-2)'  : passed ? GREEN_ICN : 'var(--sev-critical-bd)'
+            const iconFg   = unavail ? 'var(--fg-3)'      : passed ? GREEN_FG  : 'var(--sev-critical-fg)'
+            const pillBg   = unavail ? 'var(--bg-subtle)' : passed ? GREEN_ROW : 'var(--sev-critical-bg)'
+            const pillBd   = unavail ? 'var(--border-1)'  : passed ? GREEN_ICN : 'var(--sev-critical-bd)'
+            const pillFg   = unavail ? 'var(--fg-3)'      : passed ? GREEN_FG  : 'var(--sev-critical-fg)'
+            const pillText = unavail ? 'Não verificado'   : passed ? 'Atendido' : 'Pendente'
+
+            return (
+              <div key={check.id} style={{ display: 'grid', gridTemplateColumns: '26px 1fr auto', alignItems: 'flex-start', gap: 12, padding: '12px 18px', borderTop: `1px solid ${GREEN_BD}` }}>
+                <div style={{ width: 24, height: 24, borderRadius: 6, flexShrink: 0, marginTop: 1, background: iconBg, border: `1px solid ${iconBd}`, display: 'flex', alignItems: 'center', justifyContent: 'center', color: iconFg }}>
+                  <Icon name={iconName} size={13} />
+                </div>
+                <div>
+                  <div style={{ fontWeight: 600, fontSize: 13, color: 'var(--fg-0)' }}>{check.label}</div>
+                  {check.detail && <div style={{ fontSize: 12, color: 'var(--fg-2)', marginTop: 3, lineHeight: 1.55 }}>{check.detail}</div>}
+                  {check.impact && <div style={{ fontSize: 11, color: GREEN_FG, marginTop: 4, opacity: 0.7 }}>Impacto: {impactLabel[check.impact] ?? check.impact} · Peso: {check.weight}</div>}
+                </div>
+                <div style={{ fontSize: 11, fontWeight: 600, padding: '3px 9px', borderRadius: 999, background: pillBg, color: pillFg, border: `1px solid ${pillBd}`, whiteSpace: 'nowrap', alignSelf: 'flex-start', marginTop: 1 }}>
+                  {pillText}
+                </div>
+              </div>
+            )
+          })}
+        </div>
+      )}
     </div>
   )
 }
@@ -80,6 +142,8 @@ export default function CopilotReadinessScreen({ result }) {
           )}
         </Card>
       </div>
+
+      <ReadinessExplainerCard checks={checks} />
 
       <div className="t-h2" style={{ marginBottom: 12 }}>Checklist completo</div>
       {checks.length === 0 ? (

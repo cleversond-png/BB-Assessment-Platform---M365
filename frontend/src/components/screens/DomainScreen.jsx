@@ -12,32 +12,54 @@ const DOMAIN_META = {
 
 const COLLECTOR_META = {
   // Baseline
-  tenantInfo:         { label: 'Informações do Tenant', weight: null, requires: 'Organization.Read.All' },
-  licensing:          { label: 'Licenciamento',          weight: 3,    requires: 'Organization.Read.All' },
-  users:              { label: 'Usuários',               weight: 3,    requires: 'User.Read.All' },
-  usage:              { label: 'Adoção / MAU',           weight: 2,    requires: 'Reports.Read.All' },
+  tenantInfo:        { label: 'Informações do Tenant', weight: null, requires: 'Organization.Read.All',
+    description: 'Coleta informações básicas do tenant: domínio principal, país, número de usuários, grupos, apps registrados e dispositivos no Entra ID.' },
+  licensing:         { label: 'Licenciamento',          weight: 3,   requires: 'Organization.Read.All',
+    description: 'Analisa SKUs de licença adquiridos, atribuídos e disponíveis. Licenças ociosas representam custo sem uso; superalocação pode indicar acesso indevido.' },
+  users:             { label: 'Usuários',               weight: 3,   requires: 'User.Read.All',
+    description: 'Perfil da base de usuários — membros ativos, inativos, desabilitados e proporção de guests. Contas inativas são vetores silenciosos de comprometimento.' },
+  usage:             { label: 'Adoção / MAU',           weight: 2,   requires: 'Reports.Read.All',
+    description: 'Taxa de adoção real dos serviços M365 (Exchange, Teams, SharePoint, OneDrive) nos últimos 30 dias. Baixa adoção reduz o ROI do investimento em licenças.' },
   // Entra ID
-  mfa:                { label: 'MFA Coverage',                       weight: 2, requires: 'Entra P1 + UserAuthenticationMethod.Read.All' },
-  conditionalAccess:  { label: 'Conditional Access',                 weight: 2, requires: 'Entra P1 + Policy.Read.All' },
-  privileged:         { label: 'Privileged Roles',                   weight: 2, requires: 'RoleManagement.Read.Directory' },
-  guests:             { label: 'Guest Users',                        weight: 1, requires: 'User.Read.All' },
-  riskyUsers:         { label: 'Risky Users (Identity Protection)',  weight: 2, requires: 'Entra P2 + IdentityRiskyUser.Read.All' },
+  mfa:               { label: 'MFA Coverage',                      weight: 2, requires: 'Entra P1 + UserAuthenticationMethod.Read.All',
+    description: 'Percentual de usuários com ao menos um método MFA registrado. Sem MFA, uma senha vazada é suficiente para comprometer a conta — e o Copilot herdaria esse acesso.' },
+  conditionalAccess: { label: 'Conditional Access',                weight: 2, requires: 'Entra P1 + Policy.Read.All',
+    description: 'Políticas que controlam quem acessa o quê, de onde e com qual dispositivo. Sem CA, qualquer credencial válida garante acesso irrestrito ao ambiente.' },
+  privileged:        { label: 'Privileged Roles',                  weight: 2, requires: 'RoleManagement.Read.Directory',
+    description: 'Inventário de contas com roles administrativas elevadas. Excesso de Global Admins amplia a superfície de ataque; PIM mitiga com ativação just-in-time.' },
+  guests:            { label: 'Guest Users',                       weight: 1, requires: 'User.Read.All',
+    description: 'Convidados externos ativos — parceiros, fornecedores ou clientes com acesso a recursos internos. Guests inativos há mais de 90 dias são risco silencioso.' },
+  riskyUsers:        { label: 'Risky Users (Identity Protection)', weight: 2, requires: 'Entra P2 + IdentityRiskyUser.Read.All',
+    description: 'Contas sinalizadas pelo Identity Protection como comprometidas ou em risco alto/médio, com base em análise comportamental e inteligência de ameaças da Microsoft.' },
   // SharePoint
-  permissions:        { label: 'Permissões / Sharing',   weight: 3, requires: 'Sites.Read.All' },
-  ownership:          { label: 'Ownership de Sites',      weight: 3, requires: 'Sites.Read.All, User.Read.All' },
-  oversharing:        { label: 'Oversharing (Everyone)',  weight: 3, requires: 'Sites.Read.All' },
-  staleContent:       { label: 'Conteúdo Obsoleto',       weight: 2, requires: 'Sites.Read.All' },
-  files:              { label: 'Arquivos (grandes/dupl)', weight: 2, requires: 'Sites.Read.All, Files.Read.All' },
-  storage:            { label: 'Armazenamento',           weight: 2, requires: 'Sites.Read.All' },
+  permissions:       { label: 'Permissões / Sharing',   weight: 3, requires: 'Sites.Read.All',
+    description: 'Configuração global de compartilhamento — se links anônimos estão habilitados e o nível de abertura do OneDrive. Links anônimos permitem acesso sem autenticação.' },
+  ownership:         { label: 'Ownership de Sites',      weight: 3, requires: 'Sites.Read.All, User.Read.All',
+    description: 'Sites sem dono ativo (proprietário ausente ou conta desabilitada). Sem responsável, o site fica fora de qualquer ciclo de revisão e governança.' },
+  oversharing:       { label: 'Oversharing (Everyone)',  weight: 3, requires: 'Sites.Read.All',
+    description: 'Sites com permissão explícita para "Everyone" — acesso automático a todos no tenant. O Copilot amplifica isso ao indexar e citar esse conteúdo para qualquer usuário.' },
+  staleContent:      { label: 'Conteúdo Obsoleto',       weight: 2, requires: 'Sites.Read.All',
+    description: 'Sites sem atividade nos últimos 180 dias. Conteúdo obsoleto pode ser citado pelo Copilot como informação atual, gerando respostas imprecisas.' },
+  files:             { label: 'Arquivos (grandes/dupl)', weight: 2, requires: 'Sites.Read.All, Files.Read.All',
+    description: 'Arquivos excepcionalmente grandes (>100 MB) que impactam performance de sincronização e podem indicar repositórios de dados não gerenciados.' },
+  storage:           { label: 'Armazenamento',           weight: 2, requires: 'Sites.Read.All',
+    description: 'Percentual de utilização do armazenamento SharePoint total alocado para o tenant.' },
   // Governance
-  sensitivityLabels:  { label: 'Sensitivity Labels',      weight: 3, requires: 'InformationProtectionPolicy.Read.All' },
-  audit:              { label: 'Unified Audit Log',        weight: 3, requires: 'AuditLog.Read.All' },
-  dlp:                { label: 'DLP Policies',             weight: 2, requires: 'Indisponível via Graph' },
-  retention:          { label: 'Retention Policies',       weight: 2, requires: 'Indisponível via Graph' },
+  sensitivityLabels: { label: 'Sensitivity Labels',      weight: 3, requires: 'InformationProtectionPolicy.Read.All',
+    description: 'Rótulos de sensibilidade publicados (ex: Público, Confidencial). Sem labels, o Copilot não distingue dados sigilosos de públicos ao gerar respostas.' },
+  audit:             { label: 'Unified Audit Log',        weight: 3, requires: 'AuditLog.Read.All',
+    description: 'Unified Audit Log ativo com eventos recentes. Sem auditoria, não é possível rastrear o que o Copilot acessou ou investigar incidentes de vazamento de dados.' },
+  dlp:               { label: 'DLP Policies',             weight: 2, requires: 'SecurityAlert.Read.All (proxy via alertas)',
+    description: 'Políticas de prevenção de perda de dados que detectam e bloqueiam movimentação de CPF, PCI ou PII. Verificação indireta via alertas de segurança (proxy).' },
+  retention:         { label: 'Retention Policies',       weight: 2, requires: 'Indisponível via Graph',
+    description: 'Políticas que definem por quanto tempo dados são mantidos antes de serem arquivados ou excluídos — fundamento para compliance com LGPD, SOX e similares.' },
   // Email Security
-  spf:                { label: 'SPF',   weight: 2, requires: 'DNS lookup' },
-  dmarc:              { label: 'DMARC', weight: 2, requires: 'DNS lookup' },
-  dkim:               { label: 'DKIM',  weight: 2, requires: 'DNS lookup' },
+  spf:               { label: 'SPF',   weight: 2, requires: 'DNS lookup',
+    description: 'Registro DNS que lista quais servidores estão autorizados a enviar email em nome do domínio. Sem SPF, qualquer servidor pode se passar pelo seu domínio.' },
+  dmarc:             { label: 'DMARC', weight: 2, requires: 'DNS lookup',
+    description: 'Política que instrui servidores receptores a rejeitar emails que falham SPF/DKIM. "p=reject" é o nível mais seguro e bloqueia phishing de domínio próprio.' },
+  dkim:              { label: 'DKIM',  weight: 2, requires: 'DNS lookup',
+    description: 'Assinatura criptográfica no cabeçalho do email que autentica o remetente e garante que o conteúdo não foi alterado em trânsito.' },
 }
 
 function scoreColor(score) {
@@ -901,6 +923,67 @@ function CollectorDetail({ id, data, weight }) {
   )
 }
 
+function DomainExplainerCard({ collectorIds, collectors }) {
+  const [open, setOpen] = useState(false)
+  if (!collectorIds.length) return null
+
+  const GREEN_BG  = '#f0fdf4'
+  const GREEN_BD  = '#bbf7d0'
+  const GREEN_FG  = '#166534'
+  const GREEN_ROW = '#dcfce7'
+  const GREEN_ICN = '#86efac'
+
+  return (
+    <div style={{ marginBottom: 16, border: `1px solid ${GREEN_BD}`, borderRadius: 'var(--r-xl)', overflow: 'hidden' }}>
+      <div
+        onClick={() => setOpen(!open)}
+        style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '11px 18px', background: GREEN_BG, cursor: 'pointer', userSelect: 'none' }}
+      >
+        <Icon name="book-open" size={15} style={{ color: GREEN_FG, flexShrink: 0 }} />
+        <span style={{ fontWeight: 600, fontSize: 13, color: GREEN_FG, flex: 1 }}>O que cada coletor mede?</span>
+        <span style={{ fontSize: 11, color: GREEN_FG, opacity: 0.7, marginRight: 4 }}>{open ? 'Fechar' : 'Ver explicações'}</span>
+        <Icon name={open ? 'chevron-up' : 'chevron-down'} size={14} style={{ color: GREEN_FG }} />
+      </div>
+
+      {open && (
+        <div style={{ background: GREEN_BG }}>
+          {collectorIds.map((id) => {
+            const cMeta = COLLECTOR_META[id] || { label: id }
+            const data   = collectors[id]
+            const unavail = data?.unavailable
+            const score   = data?.score
+
+            const statusText = unavail ? 'Indisponível' : score == null ? 'N/A' : score >= 4 ? 'Ótimo' : score >= 3 ? 'Bom' : score >= 2 ? 'Atenção' : 'Crítico'
+            const pillBg = unavail ? 'var(--bg-subtle)' : score >= 4 ? GREEN_ROW : score >= 2 ? 'var(--warn-bg)'           : 'var(--sev-critical-bg)'
+            const pillFg = unavail ? 'var(--fg-3)'      : score >= 4 ? GREEN_FG  : score >= 2 ? 'var(--warn-fg)'           : 'var(--sev-critical-fg)'
+            const pillBd = unavail ? 'var(--border-1)'  : score >= 4 ? GREEN_ICN : score >= 2 ? 'var(--warn-bd)'           : 'var(--sev-critical-bd)'
+            const iconName = unavail ? 'minus'          : score >= 3 ? 'check'   : 'alert-circle'
+            const iconBg   = unavail ? 'var(--bg-subtle)' : score >= 3 ? GREEN_ROW : 'var(--sev-critical-bg)'
+            const iconBd   = unavail ? 'var(--border-2)'  : score >= 3 ? GREEN_ICN : 'var(--sev-critical-bd)'
+            const iconFg   = unavail ? 'var(--fg-3)'      : score >= 3 ? GREEN_FG  : 'var(--sev-critical-fg)'
+
+            return (
+              <div key={id} style={{ display: 'grid', gridTemplateColumns: '26px 1fr auto', alignItems: 'flex-start', gap: 12, padding: '12px 18px', borderTop: `1px solid ${GREEN_BD}` }}>
+                <div style={{ width: 24, height: 24, borderRadius: 6, flexShrink: 0, marginTop: 1, background: iconBg, border: `1px solid ${iconBd}`, display: 'flex', alignItems: 'center', justifyContent: 'center', color: iconFg }}>
+                  <Icon name={iconName} size={13} />
+                </div>
+                <div>
+                  <div style={{ fontWeight: 600, fontSize: 13, color: 'var(--fg-0)' }}>{cMeta.label}</div>
+                  {cMeta.description && <div style={{ fontSize: 12, color: 'var(--fg-2)', marginTop: 3, lineHeight: 1.55 }}>{cMeta.description}</div>}
+                  {cMeta.requires && <div style={{ fontSize: 11, color: GREEN_FG, marginTop: 4, opacity: 0.7 }}>Requer: {cMeta.requires}</div>}
+                </div>
+                <div style={{ fontSize: 11, fontWeight: 600, padding: '3px 9px', borderRadius: 999, background: pillBg, color: pillFg, border: `1px solid ${pillBd}`, whiteSpace: 'nowrap', alignSelf: 'flex-start', marginTop: 1 }}>
+                  {statusText}
+                </div>
+              </div>
+            )
+          })}
+        </div>
+      )}
+    </div>
+  )
+}
+
 export default function DomainScreen({ domainId, result, onBack }) {
   const meta = DOMAIN_META[domainId] || { label: domainId, subtitle: '', icon: 'layout-dashboard' }
   const domain = result?.domains?.[domainId]
@@ -922,6 +1005,8 @@ export default function DomainScreen({ domainId, result, onBack }) {
           <Btn key="1" variant="secondary" size="md" icon="arrow-left" onClick={onBack}>Voltar</Btn>,
         ]}
       />
+
+      <DomainExplainerCard collectorIds={collectorIds} collectors={collectors} />
 
       {domainId === 'emailSecurity' && domain?.domainsMatrix && (
         <Card padding={20} style={{ marginBottom: 16 }}>
