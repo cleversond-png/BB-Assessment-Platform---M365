@@ -19,7 +19,9 @@ const REQUIRED_PERMISSIONS = [
   { name: 'SharePointTenantSettings.Read.All',  category: 'SharePoint',     collectors: ['permissions (OneDrive global)'] },
   { name: 'Sites.Read.All',                     category: 'SharePoint',     collectors: ['permissions', 'ownership', 'oversharing'] },
   { name: 'User.Read.All',                      category: 'Baseline',       collectors: ['users', 'guests', 'ownership'] },
-  { name: 'UserAuthenticationMethod.Read.All',  category: 'Identidade',     collectors: ['mfa'], requires: 'Entra ID P1' },
+  { name: 'UserAuthenticationMethod.Read.All',  category: 'Identidade',     collectors: ['mfa', 'sspr'], requires: 'Entra ID P1' },
+  { name: 'Application.Read.All',               category: 'Identidade',     collectors: ['appPermissions'] },
+  { name: 'Team.ReadBasic.All',                 category: 'Teams',          collectors: ['teamsExternalAccess', 'teamsSettings'] },
 ];
 
 // Pending consent requests: state -> tenantId (CSRF protection)

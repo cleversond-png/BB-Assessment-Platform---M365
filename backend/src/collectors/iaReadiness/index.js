@@ -71,7 +71,7 @@ const READINESS_CHECKS = [
   {
     id: 'AUDIT_ACTIVE',
     label: 'Audit Log com eventos recentes',
-    weight: 0.05,
+    weight: 0.04,
     impact: 'high',
     detail: 'Sem auditoria ativa, não há como rastrear quais dados o Copilot acessou, quais prompts foram feitos ou o que foi gerado. Isso inviabiliza investigações de incidentes e demonstração de compliance.',
     check: (d) => {
@@ -109,7 +109,7 @@ const READINESS_CHECKS = [
   {
     id: 'COPILOT_PLUGINS_GOVERNED',
     label: 'Plugins do Copilot controlados pelo admin',
-    weight: 0.05,
+    weight: 0.03,
     impact: 'medium',
     detail: 'Cada Graph Connector ativo amplia os dados que o Copilot pode acessar e combinar nas respostas, incluindo sistemas externos como CRM e ERP. Conectores não revisados tornam-se vetores de exposição de dados fora do M365.',
     check: (d) => {
@@ -118,8 +118,21 @@ const READINESS_CHECKS = [
       return ext.summary?.activeConnectionsCount <= 5;
     },
   },
+  {
+    id: 'LEGACY_AUTH_BLOCKED',
+    label: 'Autenticação legada bloqueada (SMTP/IMAP/Basic Auth)',
+    weight: 0.08,
+    impact: 'critical',
+    detail: 'Protocolos legados (SMTP, IMAP, POP3, Exchange ActiveSync) ignoram MFA e Conditional Access. Um usuário com Basic Auth habilitado pode ser comprometido sem acionar nenhuma política de proteção — e o invasor herda acesso ao Copilot.',
+    check: (d) => {
+      const la = d.entraId?.collectors?.legacyAuth;
+      if (!la || la.unavailable) return null;
+      return la.summary?.legacySignInCount === 0;
+    },
+  },
 ];
-// Weight sum: 0.10+0.15+0.20+0.15+0.10+0.05+0.10+0.10+0.05 = 1.00
+// Weight sum: 0.10+0.15+0.20+0.15+0.10+0.04+0.10+0.10+0.03+0.03+0.08 = 1.00
+// AUDIT_ACTIVE: 0.05→0.04 | COPILOT_PLUGINS_GOVERNED: 0.05→0.03 | +LEGACY_AUTH_BLOCKED: 0.08
 
 const READINESS_LEVELS = [
   { min: 4.5, label: 'Pronto para IA', copilotReady: true },

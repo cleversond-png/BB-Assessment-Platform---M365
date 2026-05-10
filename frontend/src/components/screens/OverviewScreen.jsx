@@ -2,12 +2,13 @@ import { useState } from 'react'
 import { PageHeader, Card, Btn, Pill, ScoreDonut, ScoreBar, MetricStat, Icon } from '../primitives/index.jsx'
 
 const DOMAIN_META = {
-  baseline:      { label: 'Baseline',         icon: 'building-2',   totalCollectors: 4 },
-  entraId:       { label: 'Entra ID',          icon: 'shield-check', totalCollectors: 5 },
-  sharePoint:    { label: 'SharePoint',        icon: 'folder-tree',  totalCollectors: 5 },
-  governance:    { label: 'Governança',        icon: 'scale',        totalCollectors: 4 },
-  emailSecurity: { label: 'Email Security',    icon: 'mail-check',   totalCollectors: 3 },
-  iaReadiness:   { label: 'Copilot Readiness', icon: 'sparkles',     totalCollectors: 1 },
+  baseline:      { label: 'Baseline',         icon: 'building-2',     totalCollectors: 4 },
+  entraId:       { label: 'Entra ID',          icon: 'shield-check',   totalCollectors: 9 },
+  sharePoint:    { label: 'SharePoint',        icon: 'folder-tree',    totalCollectors: 5 },
+  governance:    { label: 'Governança',        icon: 'scale',          totalCollectors: 4 },
+  emailSecurity: { label: 'Email Security',    icon: 'mail-check',     totalCollectors: 3 },
+  teams:         { label: 'Teams',             icon: 'message-square', totalCollectors: 2 },
+  iaReadiness:   { label: 'Copilot Readiness', icon: 'sparkles',       totalCollectors: 1 },
 }
 
 function domainSummary(id, domain) {
@@ -50,6 +51,14 @@ function domainSummary(id, domain) {
       if (c.spf?.summary) parts.push(c.spf.summary.present ? 'SPF ✓' : 'SPF ✗')
       if (c.dmarc?.summary) parts.push(`DMARC p=${c.dmarc.summary.policy || '?'}`)
       if (c.dkim?.summary) parts.push(c.dkim.summary.configured ? 'DKIM ✓' : 'DKIM ✗')
+      return parts.join(' · ') || '—'
+    }
+    case 'teams': {
+      const parts = []
+      const ext = c.teamsExternalAccess
+      const apps = c.teamsSettings
+      if (ext && !ext.unavailable) parts.push(ext.summary?.allowsAllExternalDomains ? 'Federação aberta' : 'Federação restrita')
+      if (apps && !apps.unavailable) parts.push(apps.summary?.thirdPartyAppsAllowed ? 'Apps sem controle' : 'Apps governadas')
       return parts.join(' · ') || '—'
     }
     case 'iaReadiness': {

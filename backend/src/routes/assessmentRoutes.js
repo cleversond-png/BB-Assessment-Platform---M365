@@ -4,6 +4,7 @@ const { runEntraIdAssessment } = require('../collectors/entraId');
 const { runSharePointAssessment } = require('../collectors/sharePoint');
 const { runGovernanceAssessment } = require('../collectors/governance');
 const { runEmailSecurityAssessment } = require('../collectors/emailSecurity');
+const { runTeamsAssessment } = require('../collectors/teams');
 const { assessIAReadiness } = require('../collectors/iaReadiness');
 const { generateRecommendations } = require('../recommendations');
 const { generatePDF } = require('../pdf/pdfGenerator');
@@ -65,6 +66,7 @@ async function runAssessmentBackground(tenantId) {
       { key: 'sharePoint',    fn: () => runSharePointAssessment(tenantId) },
       { key: 'governance',    fn: () => runGovernanceAssessment(tenantId) },
       { key: 'emailSecurity', fn: () => runEmailSecurityAssessment(tenantId) },
+      { key: 'teams',         fn: () => runTeamsAssessment(tenantId) },
     ];
 
     await Promise.allSettled(runners.map(async ({ key, fn }) => {

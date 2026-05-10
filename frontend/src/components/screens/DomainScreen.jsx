@@ -7,6 +7,7 @@ const DOMAIN_META = {
   sharePoint:    { label: 'SharePoint',        icon: 'folder-tree',  subtitle: 'Coletores que avaliam permissões, ownership, conteúdo obsoleto, arquivos e armazenamento.' },
   governance:    { label: 'Governança',        icon: 'scale',        subtitle: 'Coletores que avaliam classificação de dados, auditoria, DLP e retenção.' },
   emailSecurity: { label: 'Email Security',    icon: 'mail-check',   subtitle: 'Coletores que verificam registros DNS de segurança de email (SPF, DMARC, DKIM).' },
+  teams:         { label: 'Teams',             icon: 'message-square', subtitle: 'Coletores que avaliam governança de acesso externo e apps do Microsoft Teams.' },
   iaReadiness:   { label: 'Copilot Readiness', icon: 'sparkles',     subtitle: 'Síntese dos pré-requisitos técnicos para deployment seguro do Microsoft 365 Copilot.' },
 }
 
@@ -60,6 +61,22 @@ const COLLECTOR_META = {
     description: 'Política que instrui servidores receptores a rejeitar emails que falham SPF/DKIM. "p=reject" é o nível mais seguro e bloqueia phishing de domínio próprio.' },
   dkim:              { label: 'DKIM',  weight: 2, requires: 'DNS lookup',
     description: 'Assinatura criptográfica no cabeçalho do email que autentica o remetente e garante que o conteúdo não foi alterado em trânsito.' },
+  // Entra ID — novos coletores V2
+  legacyAuth:        { label: 'Legacy Authentication', weight: 2, requires: 'AuditLog.Read.All',
+    description: 'Sign-ins detectados via protocolos legados (SMTP, IMAP, POP3, Basic Auth) nos últimos 30 dias. Esses protocolos ignoram MFA e Conditional Access completamente.' },
+  sspr:              { label: 'SSPR Coverage',          weight: 1, requires: 'Entra P1 + UserAuthenticationMethod.Read.All',
+    description: 'Percentual de usuários com Self-Service Password Reset configurado. SSPR reduz chamados de suporte e elimina a necessidade de resets inseguros via helpdesk.' },
+  breakGlass:        { label: 'Break-Glass Accounts',   weight: 1, requires: 'User.Read.All + Policy.Read.All',
+    description: 'Contas de emergência (break-glass) cloud-only excluídas de todas as CA policies. Sem elas, uma política mal configurada pode bloquear todos os admins do tenant.' },
+  appPermissions:    { label: 'App Permissions',         weight: 2, requires: 'Application.Read.All',
+    description: 'Apps e service principals com permissões de alto impacto (Mail.ReadWrite, Files.ReadWrite.All etc.) via admin consent. Cada app é um vetor potencial de exfiltração de dados.' },
+  // Teams
+  teamsExternalAccess: { label: 'External Access',        weight: 2, requires: 'Policy.Read.All',
+    description: 'Configurações de federação e acesso externo do Teams — controla se usuários externos podem iniciar contato e de quais domínios. Federação irrestrita amplia a superfície de engenharia social.' },
+  teamsSettings:       { label: 'Teams App Governance',   weight: 1, requires: 'Team.ReadBasic.All',
+    description: 'Governança de apps no Teams — se usuários podem instalar apps de terceiros sem aprovação do admin. Apps não revisadas podem expandir o escopo de dados acessíveis pelo Copilot.' },
+  appsChannel:       { label: 'M365 Apps (desktop)',    weight: 2, requires: 'Reports.Read.All',
+    description: 'Percentual de usuários com Microsoft 365 Apps instalado em dispositivo desktop. O Copilot só aparece no Office instalado — usuários web-only não têm acesso ao botão do Copilot.' },
 }
 
 function scoreColor(score) {
@@ -104,7 +121,14 @@ function collectorMetric(id, data) {
     case 'retention': return { value: '—', sub: 'fora do Graph API' }
     case 'spf': return { value: s.present ? 'Presente' : 'Ausente', sub: s.qualifier || '—' }
     case 'dmarc': return { value: s.present ? 'Presente' : 'Ausente', sub: `p=${s.policy || '?'}` }
-    case 'dkim': return { value: s.configured ? 'Configurado' : 'Ausente', sub: 'Exchange Online' }
+    case 'dkim':                 return { value: s.configured ? 'Configurado' : 'Ausente', sub: 'Exchange Online' }
+    case 'legacyAuth':           return { value: `${s.legacySignInCount ?? 0}`, sub: `sign-ins legados (${s.distinctUsers ?? 0} usuários)` }
+    case 'sspr':                 return { value: `${s.coveragePercent ?? '?'}%`, sub: `${s.ssprRegistered ?? 0} / ${s.total ?? 0} usuários` }
+    case 'breakGlass':           return { value: s.breakGlassDetected ? 'Detectado' : 'Ausente', sub: `${s.globalAdminCount ?? 0} Global Admins` }
+    case 'appPermissions':       return { value: `${s.appsWithHighRiskPerms ?? 0}`, sub: `apps com permissões alto risco de ${s.totalApps ?? 0}` }
+    case 'teamsExternalAccess':  return { value: s.allowsAllExternalDomains ? 'Aberto' : 'Restrito', sub: `${s.federatedDomainsCount ?? 0} domínios federados` }
+    case 'teamsSettings':        return { value: s.thirdPartyAppsAllowed ? 'Sem controle' : 'Governado', sub: 'apps de terceiros' }
+    case 'appsChannel':          return { value: `${s.desktopPercent ?? '?'}%`, sub: 'usuários com desktop client' }
     default: return { value: `${data.score?.toFixed(1) ?? '?'}`, sub: 'score' }
   }
 }
