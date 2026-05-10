@@ -8,8 +8,9 @@ import RecommendationsScreen from './components/screens/RecommendationsScreen.js
 import CopilotReadinessScreen from './components/screens/CopilotReadinessScreen.jsx'
 import HistoryScreen from './components/screens/HistoryScreen.jsx'
 import ConsentScreen from './components/screens/ConsentScreen.jsx'
+import ZeroTrustScreen from './components/screens/ZeroTrustScreen.jsx'
 
-const DOMAIN_IDS = ['baseline', 'entraId', 'sharePoint', 'governance', 'emailSecurity']
+const DOMAIN_IDS = ['entraId', 'sharePoint', 'governance', 'emailSecurity']
 
 function scoreColor(v) {
   if (v == null) return 'var(--fg-3)'
@@ -243,6 +244,14 @@ export default function App() {
       case 'overview':
         return (
           <OverviewScreen
+            result={result}
+            onSelectDomain={id => setScreen(id)}
+            onOpenRec={() => setScreen('recommendations')}
+          />
+        )
+      case 'baseline':
+        return (
+          <ZeroTrustScreen
             result={result}
             onSelectDomain={id => setScreen(id)}
             onOpenRec={() => setScreen('recommendations')}
