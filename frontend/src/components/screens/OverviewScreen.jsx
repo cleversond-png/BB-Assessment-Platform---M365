@@ -318,7 +318,7 @@ export default function OverviewScreen({ result, onSelectDomain, onOpenRec }) {
   const critical = recs.filter(r => r.severity === 'critical')
   const high = recs.filter(r => r.severity === 'high')
   const medium = recs.filter(r => r.severity === 'medium')
-  const domains = ['baseline', 'entraId', 'sharePoint', 'governance', 'emailSecurity', 'iaReadiness']
+  const domains = ['baseline', 'entraId', 'sharePoint', 'governance', 'emailSecurity', 'teams', 'iaReadiness']
 
   const assessedAt = result.assessedAt ? new Date(result.assessedAt) : null
   const dateStr = assessedAt ? assessedAt.toLocaleDateString('pt-BR', { day: '2-digit', month: 'short', year: 'numeric' }) : '—'

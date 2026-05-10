@@ -1,12 +1,13 @@
 import { Icon, Pill } from '../primitives/index.jsx'
 
-const DOMAIN_ORDER = ['baseline', 'entraId', 'sharePoint', 'governance', 'emailSecurity', 'iaReadiness']
+const DOMAIN_ORDER = ['baseline', 'entraId', 'sharePoint', 'governance', 'emailSecurity', 'teams', 'iaReadiness']
 const DOMAIN_META = {
   baseline:      { label: 'Baseline',         icon: 'building-2' },
   entraId:       { label: 'Entra ID',          icon: 'shield-check' },
   sharePoint:    { label: 'SharePoint',        icon: 'folder-tree' },
   governance:    { label: 'Governança',        icon: 'scale' },
   emailSecurity: { label: 'Email Security',    icon: 'mail-check' },
+  teams:         { label: 'Teams',             icon: 'message-square' },
   iaReadiness:   { label: 'Copilot Readiness', icon: 'sparkles' },
 }
 
