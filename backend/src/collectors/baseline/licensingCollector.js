@@ -149,7 +149,7 @@ async function collectLicensing(tenantId) {
   else if (unusedRatio <= 0.40) score = 2;
   else score = 1;
 
-  const entraIdTier = detectEntraIdTier(userSkus);
+  const entraIdTier = detectEntraIdTier(rawSkus);
 
   return {
     score,

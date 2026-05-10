@@ -1,14 +1,33 @@
 const { graphGet } = require('../../graph/graphClient');
+const logger = require('../../logger');
+
+const CONSISTENCY_EVENTUAL = { extraHeaders: { 'ConsistencyLevel': 'eventual' } };
+
+async function safeCount(tenantId, path) {
+  try {
+    const val = await graphGet(tenantId, path, {}, CONSISTENCY_EVENTUAL);
+    return typeof val === 'number' ? val : parseInt(val, 10) || null;
+  } catch {
+    return null;
+  }
+}
 
 async function collectTenantInfo(tenantId) {
-  const data = await graphGet(tenantId, '/organization', {
-    '$select': 'displayName,verifiedDomains,countryLetterCode,createdDateTime',
-  });
+  const [orgData, groupCount, appCount, deviceCount] = await Promise.allSettled([
+    graphGet(tenantId, '/organization', {
+      '$select': 'displayName,verifiedDomains,countryLetterCode,createdDateTime',
+    }),
+    safeCount(tenantId, '/groups/$count'),
+    safeCount(tenantId, '/applications/$count'),
+    safeCount(tenantId, '/devices/$count'),
+  ]);
 
-  const org = data.value?.[0] || {};
+  const org = orgData.status === 'fulfilled' ? (orgData.value?.value?.[0] || {}) : {};
   const verifiedDomains = org.verifiedDomains || [];
   const defaultDomain = verifiedDomains.find((d) => d.isDefault)?.name || null;
   const initialDomain = verifiedDomains.find((d) => d.isInitial)?.name || null;
+
+  logger.info({ event: 'collector_done', collector: 'tenantInfo', tenantId, defaultDomain });
 
   return {
     displayName: org.displayName || null,
@@ -21,6 +40,9 @@ async function collectTenantInfo(tenantId) {
       isDefault: !!d.isDefault,
       isInitial: !!d.isInitial,
     })),
+    groupCount: groupCount.status === 'fulfilled' ? groupCount.value : null,
+    appCount: appCount.status === 'fulfilled' ? appCount.value : null,
+    deviceCount: deviceCount.status === 'fulfilled' ? deviceCount.value : null,
   };
 }
 
