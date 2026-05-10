@@ -242,12 +242,24 @@ export default function OverviewScreen({ result, onSelectDomain, onOpenRec }) {
         </Card>
         <div style={{ display: 'grid', gridTemplateRows: '1fr 1fr', gap: 24 }}>
           <Card padding={24}>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 24 }}>
-              <MetricStat label="Tenant" value={result.tenantName || '—'} sub={<span className="t-mono">{(result.tenantId || '').slice(0, 8)}…</span>} />
-              <MetricStat label="Licença Entra" value={result.entraIdTier || 'Free'} sub="P2 recomendado" />
-              <MetricStat label="Coletores" value={`${domains.filter(id => result.domains?.[id]).length * 4} / 24`} sub="estimativa" />
-              <MetricStat label="Última execução" value={timeStr} sub={dateStr} />
-            </div>
+            {(() => {
+              const ti = result.domains?.baseline?.collectors?.tenantInfo
+              const users = result.domains?.baseline?.collectors?.users?.summary?.total
+              const tier = result.entraIdTier
+              const tierSub = tier === 'P2' ? 'Tier máximo' : tier === 'P1' ? 'P2 recomendado' : tier === 'Basic' ? 'P1/P2 recomendado' : 'P1/P2 recomendado'
+              return (
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 16 }}>
+                  <MetricStat label="Tenant" value={result.tenantName || '—'} sub={<span className="t-mono">{(result.tenantId || '').slice(0, 8)}…</span>} />
+                  <MetricStat label="Domínio primário" value={ti?.defaultDomain || '—'} sub={`${ti?.verifiedDomains?.length ?? '?'} domínio(s) verificado(s)`} />
+                  <MetricStat label="Licença Entra" value={tier || '—'} sub={tierSub} />
+                  <MetricStat label="Última execução" value={timeStr} sub={dateStr} />
+                  <MetricStat label="Usuários" value={users != null ? users.toLocaleString('pt-BR') : '—'} sub="total no tenant" />
+                  <MetricStat label="Grupos" value={ti?.groupCount != null ? ti.groupCount.toLocaleString('pt-BR') : '—'} sub="grupos M365 e segurança" />
+                  <MetricStat label="Aplicativos" value={ti?.appCount != null ? ti.appCount.toLocaleString('pt-BR') : '—'} sub="app registrations" />
+                  <MetricStat label="Dispositivos" value={ti?.deviceCount != null ? ti.deviceCount.toLocaleString('pt-BR') : '—'} sub="registrados no Entra" />
+                </div>
+              )
+            })()}
           </Card>
           <Card padding={24}>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 24, alignItems: 'center' }}>

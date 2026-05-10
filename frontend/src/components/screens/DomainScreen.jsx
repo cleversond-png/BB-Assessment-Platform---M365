@@ -73,7 +73,7 @@ function collectorMetric(id, data) {
     case 'ownership': return { value: `${(s.ownerlessCount || 0) + (s.disabledOwnerCount || 0)}`, sub: 'sites sem owner válido' }
     case 'staleContent': return { value: `${s.staleRatioPercent ?? '?'}%`, sub: `sites inativos >${s.stalePeriodDays ?? 90}d` }
     case 'files': return { value: `${s.largeFilesCount ?? 0}`, sub: 'arquivos >100MB' }
-    case 'storage': return { value: `${s.utilizationPercent ?? '?'}%`, sub: `${s.totalStorageGB ?? '?'} GB de ${s.totalAllocatedGB ?? '?'} GB` }
+    case 'storage': return { value: `${s.utilizationPercent ?? '?'}%`, sub: `${formatGB(s.totalStorageGB)} de ${formatGB(s.totalAllocatedGB)}` }
     case 'sensitivityLabels': return { value: `${s.totalLabels ?? 0}`, sub: 'labels publicadas' }
     case 'audit': return { value: s.recentEventsFound > 0 ? 'Ativo' : 'Inativo', sub: 'últimos 30 dias' }
     case 'dlp': return { value: '—', sub: 'fora do Graph API' }
@@ -131,6 +131,163 @@ function collectorDetail(id, data) {
     case 'dkim': return s.configured ? 'DKIM configurado para Exchange Online.' : 'DKIM não detectado para Exchange Online.'
     default: return JSON.stringify(data.summary || data || {}, null, 2).slice(0, 300)
   }
+}
+
+function formatGB(gb) {
+  if (gb == null || gb === '?') return '—'
+  const n = typeof gb === 'string' ? parseFloat(gb) : gb
+  if (isNaN(n)) return '—'
+  if (n >= 1024) return `${(n / 1024).toFixed(1)} TB`
+  return `${n} GB`
+}
+
+function formatMB(mb) {
+  if (mb == null) return '—'
+  if (mb >= 1024 * 1024) return `${(mb / (1024 * 1024)).toFixed(1)} TB`
+  if (mb >= 1024) return `${(mb / 1024).toFixed(1)} GB`
+  return `${mb} MB`
+}
+
+function FilesDetailContent({ data }) {
+  const s = data?.summary || {}
+  const largeFiles = data?.largeFiles || []
+  const dupGroups = data?.duplicates || []
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 12 }}>
+        {[
+          { label: 'Arquivos grandes (>100MB)', value: s.largeFilesCount ?? 0 },
+          { label: 'Grupos de duplicatas',      value: s.duplicateGroupsCount ?? 0 },
+          { label: 'Arquivos obsoletos (>12m)', value: s.staleFilesCount ?? 0 },
+        ].map(m => (
+          <div key={m.label} style={{ padding: '10px 12px', borderRadius: 8, background: 'var(--bg-subtle)', border: '1px solid var(--border-1)' }}>
+            <div className="t-2xs" style={{ marginBottom: 4 }}>{m.label}</div>
+            <div style={{ fontWeight: 700, fontSize: 22, lineHeight: 1, color: m.value > 0 ? 'var(--score-0)' : 'var(--score-5)' }}>{m.value}</div>
+          </div>
+        ))}
+      </div>
+
+      {largeFiles.length > 0 && (
+        <div>
+          <div className="t-2xs" style={{ marginBottom: 8 }}>Top {largeFiles.length} arquivos grandes</div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+            {largeFiles.map((f, i) => (
+              <div key={i} style={{
+                display: 'grid', gridTemplateColumns: '1fr auto auto', gap: 10, alignItems: 'center',
+                padding: '8px 10px', borderRadius: 6, background: 'var(--bg-subtle)', border: '1px solid var(--border-1)',
+              }}>
+                <div style={{ minWidth: 0 }}>
+                  <div className="t-sm" style={{ fontWeight: 500, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                    {f.name}
+                  </div>
+                  <div className="t-xs" style={{ color: 'var(--fg-3)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                    {f.site}
+                  </div>
+                </div>
+                <span className="t-xs" style={{ color: 'var(--fg-3)', whiteSpace: 'nowrap' }}>
+                  {f.lastModifiedDateTime ? new Date(f.lastModifiedDateTime).toLocaleDateString('pt-BR') : '—'}
+                </span>
+                <span style={{ fontFamily: 'var(--font-mono)', fontSize: 11, fontWeight: 600, color: 'var(--score-0)', whiteSpace: 'nowrap' }}>
+                  {formatMB(Math.round(f.sizeBytes / (1024 * 1024)))}
+                </span>
+              </div>
+            ))}
+          </div>
+          {s.coverage && (
+            <div className="t-xs" style={{ color: 'var(--fg-3)', marginTop: 6 }}>Cobertura: {s.coverage}</div>
+          )}
+        </div>
+      )}
+
+      {dupGroups.length > 0 && (
+        <div>
+          <div className="t-2xs" style={{ marginBottom: 8 }}>Top {dupGroups.length} grupos de duplicatas</div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+            {dupGroups.map((g, i) => (
+              <div key={i} style={{
+                display: 'grid', gridTemplateColumns: '1fr auto auto', gap: 10, alignItems: 'center',
+                padding: '6px 10px', borderRadius: 6, background: 'var(--bg-subtle)', border: '1px solid var(--border-1)',
+              }}>
+                <div className="t-sm" style={{ fontWeight: 500, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                  {g.files?.[0]?.name || '—'}
+                </div>
+                <span className="t-xs" style={{ color: 'var(--fg-3)', whiteSpace: 'nowrap' }}>{g.copies}× cópias</span>
+                <span style={{ fontFamily: 'var(--font-mono)', fontSize: 11, fontWeight: 600, color: 'var(--warn-fg)', whiteSpace: 'nowrap' }}>
+                  {formatMB(Math.round(g.wastedBytes / (1024 * 1024)))} desperdiçados
+                </span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}
+
+function EmailSecurityMatrixContent({ domainData }) {
+  const matrix = domainData?.domainsMatrix
+  if (!matrix || matrix.length === 0) return null
+
+  function StatusDot({ ok }) {
+    return (
+      <div style={{
+        display: 'inline-flex', alignItems: 'center', gap: 5,
+        fontWeight: 600, fontSize: 12,
+        color: ok ? 'var(--ok-fg)' : 'var(--err-fg)',
+      }}>
+        <span style={{ width: 7, height: 7, borderRadius: 999, background: ok ? 'var(--ok-fg)' : 'var(--err-fg)', flexShrink: 0 }} />
+        {ok ? 'OK' : 'Ausente'}
+      </div>
+    )
+  }
+
+  return (
+    <div style={{ marginTop: 16 }}>
+      <div className="t-2xs" style={{ marginBottom: 8 }}>Status por domínio ({matrix.length} domínios)</div>
+      <div style={{ border: '1px solid var(--border-1)', borderRadius: 8, overflow: 'hidden' }}>
+        <div style={{
+          display: 'grid', gridTemplateColumns: '1fr 80px 80px 80px',
+          padding: '8px 12px', background: 'var(--bg-subtle)',
+          borderBottom: '1px solid var(--border-1)',
+        }}>
+          <span className="t-2xs">Domínio</span>
+          <span className="t-2xs" style={{ textAlign: 'center' }}>SPF</span>
+          <span className="t-2xs" style={{ textAlign: 'center' }}>DMARC</span>
+          <span className="t-2xs" style={{ textAlign: 'center' }}>DKIM</span>
+        </div>
+        {matrix.map((row, i) => (
+          <div key={row.domain} style={{
+            display: 'grid', gridTemplateColumns: '1fr 80px 80px 80px',
+            padding: '10px 12px', alignItems: 'center',
+            background: row.isPrimary ? 'var(--brand-50)' : 'transparent',
+            borderTop: i === 0 ? 'none' : '1px solid var(--border-1)',
+          }}>
+            <div style={{ minWidth: 0 }}>
+              <span translate="no" className="t-sm" style={{ fontWeight: row.isPrimary ? 600 : 400, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', display: 'block' }}>
+                {row.domain}
+              </span>
+              {row.isPrimary && <span className="t-xs" style={{ color: 'var(--brand-600)' }}>primário</span>}
+            </div>
+            <div style={{ textAlign: 'center' }}>
+              {row.spf ? <StatusDot ok={row.spf.present} /> : <span className="t-xs" style={{ color: 'var(--fg-3)' }}>—</span>}
+            </div>
+            <div style={{ textAlign: 'center' }}>
+              {row.dmarc
+                ? <div style={{ display: 'inline-flex', flexDirection: 'column', alignItems: 'center', gap: 2 }}>
+                    <StatusDot ok={row.dmarc.present} />
+                    {row.dmarc.present && row.dmarc.policy && <span className="t-xs" style={{ color: 'var(--fg-3)' }}>p={row.dmarc.policy}</span>}
+                  </div>
+                : <span className="t-xs" style={{ color: 'var(--fg-3)' }}>—</span>}
+            </div>
+            <div style={{ textAlign: 'center' }}>
+              {row.dkim ? <StatusDot ok={row.dkim.configured} /> : <span className="t-xs" style={{ color: 'var(--fg-3)' }}>—</span>}
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  )
 }
 
 const GRAPH_PERM_DOCS = 'https://learn.microsoft.com/en-us/graph/permissions-reference'
@@ -343,10 +500,11 @@ function StorageDetailContent({ data }) {
       <div>
         <SectionHeader color="var(--brand-500)" label="Utilização de armazenamento (sites amostrados)" />
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 5 }}>
-          <span className="t-sm" style={{ fontWeight: 500 }}>Utilizado</span>
-          <span className="t-xs" style={{ color: 'var(--fg-3)' }}>
-            {s.totalStorageGB ?? '?'} GB de {s.totalAllocatedGB ?? '?'} GB alocados · {utilizationPct}%
+          <span className="t-sm" style={{ fontWeight: 500 }}>
+            <span style={{ fontSize: 22, fontWeight: 700, lineHeight: 1, color: utilizationColor }}>{formatGB(s.totalStorageGB)}</span>
+            <span className="t-xs" style={{ marginLeft: 6 }}>de {formatGB(s.totalAllocatedGB)} alocados</span>
           </span>
+          <span className="t-xs" style={{ color: 'var(--fg-3)' }}>{utilizationPct}% utilizado</span>
         </div>
         <div style={{ height: 10, borderRadius: 5, background: 'var(--bg-subtle)', border: '1px solid var(--border-1)', overflow: 'hidden' }}>
           <div style={{ width: `${utilizationPct}%`, height: '100%', background: utilizationColor, borderRadius: 5 }} />
@@ -399,7 +557,7 @@ function StorageDetailContent({ data }) {
             const pct = Math.round((site.storageMB / maxMB) * 100)
             const color = site.quotaState === 'critical' || site.quotaState === 'exceeded' ? '#DC2626'
               : site.quotaState === 'nearing' ? '#D97706' : '#7C3AED'
-            const sizeLabel = site.storageMB >= 1024 ? `${(site.storageMB / 1024).toFixed(1)} GB` : `${site.storageMB} MB`
+            const sizeLabel = formatMB(site.storageMB)
             return (
               <div key={i} style={{ marginBottom: 10 }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 4 }}>
@@ -549,6 +707,7 @@ function CollectorDetail({ id, data, weight }) {
           : id === 'users'      ? <UsersDetailContent data={data} />
           : id === 'storage'    ? <StorageDetailContent data={data} />
           : id === 'privileged' ? <PrivilegedDetailContent data={data} />
+          : id === 'files'      ? <FilesDetailContent data={data} />
           : <div className="t-body">{detail}</div>
         }
       </div>
@@ -585,6 +744,13 @@ export default function DomainScreen({ domainId, result, onBack }) {
           <Btn key="1" variant="secondary" size="md" icon="arrow-left" onClick={onBack}>Voltar</Btn>,
         ]}
       />
+
+      {domainId === 'emailSecurity' && domain?.domainsMatrix && (
+        <Card padding={20} style={{ marginBottom: 16 }}>
+          <div className="t-h3" style={{ marginBottom: 4 }}>Coletores por domínio</div>
+          <EmailSecurityMatrixContent domainData={domain} />
+        </Card>
+      )}
 
       {collectorIds.length === 0 ? (
         <Card padding={32}>
