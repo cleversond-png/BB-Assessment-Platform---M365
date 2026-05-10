@@ -17,8 +17,8 @@ function domainSummary(id, domain) {
     case 'baseline': {
       const parts = []
       if (c.licensing?.summary?.totalLicenses) parts.push(`${c.licensing.summary.totalLicenses} licenças`)
-      if (c.users?.summary?.totalUsers) parts.push(`${c.users.summary.totalUsers} usuários`)
-      if (c.usage?.summary?.adoptionPercent != null) parts.push(`${c.usage.summary.adoptionPercent}% adoção`)
+      if (c.users?.summary?.total) parts.push(`${c.users.summary.total} usuários`)
+      if (c.usage?.summary?.adoptionPercent != null && c.usage?.summary?.m365Total > 0) parts.push(`${c.usage.summary.adoptionPercent}% adoção`)
       return parts.join(' · ') || '—'
     }
     case 'entraId': {
@@ -111,39 +111,6 @@ function DomainCard({ id, domain, onClick }) {
   )
 }
 
-function ReconsentBanner({ result, tenantId }) {
-  if (!result?.reconsentNeeded) return null
-  const missing = result.missingPermissions || []
-  return (
-    <div style={{
-      display: 'flex', alignItems: 'center', gap: 14,
-      padding: '14px 20px', borderRadius: 'var(--r-xl)',
-      background: 'var(--warn-bg)', border: '1px solid var(--warn-bd)', marginBottom: 16,
-    }}>
-      <div style={{ flexShrink: 0, color: 'var(--warn-fg)' }}>
-        <Icon name="triangle-alert" size={20} />
-      </div>
-      <div style={{ flex: 1, minWidth: 0 }}>
-        <span style={{ fontWeight: 700, color: 'var(--warn-fg)', fontSize: 14 }}>Re-consent necessário</span>
-        <span className="t-sm" style={{ color: 'var(--warn-fg)', marginLeft: 10, opacity: 0.88 }}>
-          {missing.length} permissão(ões) ausente(s) na App Registration deste tenant — alguns checks ficaram <b>Não verificados</b>.
-        </span>
-        <div className="t-xs" style={{ color: 'var(--warn-fg)', marginTop: 6, fontFamily: 'var(--font-mono)', opacity: 0.85 }}>
-          {missing.join('  ·  ')}
-        </div>
-      </div>
-      <Btn variant="secondary" size="sm" icon="external-link"
-        onClick={() => {
-          const url = `/auth/consent?tenant_id=${encodeURIComponent(tenantId || result.tenantId)}`
-          fetch(url).then(r => r.json()).then(d => {
-            if (d.consentUrl) window.open(d.consentUrl, '_blank', 'noopener')
-          })
-        }}>
-        Gerar URL de re-consent
-      </Btn>
-    </div>
-  )
-}
 
 function CopilotReadinessBanner({ iaReadiness }) {
   if (!iaReadiness) return null
@@ -335,7 +302,6 @@ export default function OverviewScreen({ result, onSelectDomain, onOpenRec }) {
         ]}
       />
 
-      <ReconsentBanner result={result} tenantId={result.tenantId} />
       <CopilotReadinessBanner iaReadiness={result.domains?.iaReadiness} />
       <ReadinessExplainerCard iaReadiness={result.domains?.iaReadiness} />
 

@@ -64,27 +64,34 @@ async function collectUsage(tenantId) {
   }
 
   const m365Total = parsed.m365.active + parsed.m365.inactive;
-  const adoptionPercent = m365Total > 0 ? Math.round((parsed.m365.active / m365Total) * 100) : 0;
-  const score =
-    adoptionPercent >= 80 ? 5 :
-    adoptionPercent >= 65 ? 4 :
-    adoptionPercent >= 50 ? 3 :
-    adoptionPercent >= 35 ? 2 : 1;
+  // m365Total = 0 ocorre em tenants de educação/gov onde a coluna "Microsoft 365" do
+  // relatório não reflete licenças edu — tratar como dado não disponível em vez de 0%.
+  const hasServiceData = parsed.exchange.active + parsed.teams.active +
+    parsed.sharePoint.active + parsed.oneDrive.active > 0;
+  const adoptionPercent = m365Total > 0
+    ? Math.round((parsed.m365.active / m365Total) * 100)
+    : null;
+  const score = adoptionPercent == null
+    ? null
+    : adoptionPercent >= 80 ? 5
+    : adoptionPercent >= 65 ? 4
+    : adoptionPercent >= 50 ? 3
+    : adoptionPercent >= 35 ? 2 : 1;
 
   function svcAdoption(svc) {
     const t = svc.active + svc.inactive;
     return t > 0 ? Math.round((svc.active / t) * 100) : null;
   }
 
-  logger.info({ event: 'collector_done', collector: 'usage', tenantId, adoptionPercent, score });
+  logger.info({ event: 'collector_done', collector: 'usage', tenantId, adoptionPercent, score, m365Total });
 
   return {
     collector: 'usage',
     score,
     summary: {
       reportDate: parsed.reportDate,
-      m365Active: parsed.m365.active,
-      m365Total,
+      m365Active: m365Total > 0 ? parsed.m365.active : null,
+      m365Total: m365Total > 0 ? m365Total : null,
       adoptionPercent,
       services: {
         exchange:   { active: parsed.exchange.active,   adoptionPercent: svcAdoption(parsed.exchange) },

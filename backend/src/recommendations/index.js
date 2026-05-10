@@ -5,13 +5,33 @@ const RULES = [
   // ── Identidade ────────────────────────────────────────────────────────────
   {
     id: 'ENTRA_NO_PREMIUM_P1',
-    check: (r) => r.entraId?.collectors?.mfa?.unavailable || r.entraId?.collectors?.conditionalAccess?.unavailable,
+    check: (r) => {
+      const tier = r.baseline?.entraIdTier;
+      const hasPremium = tier === 'P1' || tier === 'P2';
+      if (hasPremium) return false;
+      return r.entraId?.collectors?.mfa?.unavailable || r.entraId?.collectors?.conditionalAccess?.unavailable;
+    },
     severity: 'critical',
     category: 'Identidade',
-    finding: 'Tenant sem Azure AD Premium P1 — MFA reporting e Conditional Access indisponíveis.',
-    recommendation: 'Adquirir licenças Azure AD Premium P1 para toda a base de usuários. Habilita MFA enforcement, Conditional Access e Identity Protection.',
+    finding: 'Tenant sem Entra ID Premium — MFA reporting e Conditional Access indisponíveis.',
+    recommendation: 'Adquirir licenças Entra ID P1 para toda a base de usuários. Habilita MFA enforcement por Conditional Access e Identity Protection.',
     effort: 'high',
     reference: 'https://learn.microsoft.com/en-us/entra/fundamentals/whatis',
+  },
+  {
+    id: 'ENTRA_P1_PERM_MISSING',
+    check: (r) => {
+      const tier = r.baseline?.entraIdTier;
+      const hasPremium = tier === 'P1' || tier === 'P2';
+      if (!hasPremium) return false;
+      return r.entraId?.collectors?.mfa?.unavailable || r.entraId?.collectors?.conditionalAccess?.unavailable;
+    },
+    severity: 'high',
+    category: 'Identidade',
+    finding: 'MFA reporting ou Conditional Access indisponíveis — permissões ausentes na App Registration, mesmo com Entra ID P1 licenciado.',
+    recommendation: 'Verificar se a App Registration possui as permissões UserAuthenticationMethod.Read.All (para MFA) e Policy.Read.All (para Conditional Access) com admin consent concedido no tenant.',
+    effort: 'low',
+    reference: 'https://learn.microsoft.com/en-us/graph/permissions-reference',
   },
   {
     id: 'MFA_LOW_COVERAGE',

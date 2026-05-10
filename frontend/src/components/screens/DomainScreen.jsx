@@ -717,7 +717,7 @@ function PrivilegedDetailContent({ data }) {
     <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
       {!mfaAvailable && (
         <div className="t-xs" style={{ color: 'var(--fg-3)', marginBottom: 8 }}>
-          Status de MFA indisponível — Entra P1 necessário para este relatório.
+          Status de MFA indisponível — permissão UserAuthenticationMethod.Read.All necessária na App Registration.
         </div>
       )}
       {users.map((u, i) => (

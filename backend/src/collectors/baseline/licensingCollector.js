@@ -86,21 +86,49 @@ function getDisplayName(skuPartNumber) {
   return SKU_DISPLAY_NAMES[skuPartNumber] || skuPartNumber;
 }
 
+// SKUs que incluem Entra ID P2 como service plan embutido
+const P2_BUNDLE_SKUS = new Set([
+  'SPE_E5',               // Microsoft 365 E5
+  'EMSPREMIUM',           // Enterprise Mobility + Security E5
+  'M365EDU_A5_FACULTY',   // Microsoft 365 A5 Docentes
+  'M365EDU_A5_STUDENT',   // Microsoft 365 A5 Estudantes
+  'ENTERPRISEPREMIUM_FACULTY', // Microsoft 365 A5 Docentes (alias)
+  'ENTERPRISEPREMIUM_STUDENT', // Microsoft 365 A5 Estudantes (alias)
+]);
+
+// SKUs que incluem Entra ID P1 como service plan embutido (mas não P2)
+const P1_BUNDLE_SKUS = new Set([
+  'SPB',                        // Microsoft 365 Business Premium
+  'SPE_E3',                     // Microsoft 365 E3
+  'EMS',                        // Enterprise Mobility + Security E3
+  'ENTERPRISEPACKPLUS_FACULTY', // Microsoft 365 A3 Docentes
+  'ENTERPRISEPACKPLUS_STUUSEBNFT', // Microsoft 365 A3 Estudantes (Benefício)
+  'M365EDU_A3_FACULTY',         // Microsoft 365 A3 Docentes
+  'M365EDU_A3_STUDENT',         // Microsoft 365 A3 Estudantes
+  'M365EDU_A3_ESTUDANTEBNFT',   // Microsoft 365 A3 Estudantes (Benefício)
+  'SPE_F3',                     // Microsoft 365 F3
+]);
+
 // Detecta o tier do Entra ID a partir dos SKUs ativos.
-// Também verifica servicePlans dentro de cada SKU pois muitos planos (ex: M365 Business Premium / SPB)
-// incluem AAD_PREMIUM como service plan embutido, sem um SKU standalone separado.
+// Prioridade: SKU standalone > service plan embutido > SKU bundle conhecido.
 function detectEntraIdTier(skus) {
   const parts = skus.map((s) => s.skuPartNumber?.toUpperCase() || '');
-  const planNames = skus.flatMap((s) => (s.servicePlans || []).map((p) => p.servicePlanName?.toUpperCase() || ''));
+  const planNames = skus.flatMap((s) =>
+    (s.servicePlans || []).map((p) => p.servicePlanName?.toUpperCase() || '')
+  );
 
+  // P2 — SKU standalone, service plan ou bundle P2 conhecido
   if (
-    parts.some((p) => p === 'AAD_PREMIUM_P2' || p.includes('ENTRA_P2') || p.includes('EMS_P2') || p.includes('EMSPREMIUM')) ||
-    planNames.some((p) => p === 'AAD_PREMIUM_P2')
+    parts.some((p) => p === 'AAD_PREMIUM_P2' || p.includes('ENTRA_P2') || p.includes('EMS_P2')) ||
+    planNames.some((p) => p === 'AAD_PREMIUM_P2') ||
+    skus.some((s) => P2_BUNDLE_SKUS.has(s.skuPartNumber?.toUpperCase() || ''))
   ) return 'P2';
 
+  // P1 — SKU standalone, service plan ou bundle P1 conhecido
   if (
-    parts.some((p) => p === 'AAD_PREMIUM' || p.includes('ENTRA_P1') || p.includes('EMS')) ||
-    planNames.some((p) => p === 'AAD_PREMIUM')
+    parts.some((p) => p === 'AAD_PREMIUM' || p.includes('ENTRA_P1')) ||
+    planNames.some((p) => p === 'AAD_PREMIUM') ||
+    skus.some((s) => P1_BUNDLE_SKUS.has(s.skuPartNumber?.toUpperCase() || ''))
   ) return 'P1';
 
   if (parts.some((p) => p === 'AAD_BASIC')) return 'Basic';
