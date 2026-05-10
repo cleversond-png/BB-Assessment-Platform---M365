@@ -10,7 +10,7 @@ import HistoryScreen from './components/screens/HistoryScreen.jsx'
 import ConsentScreen from './components/screens/ConsentScreen.jsx'
 import ZeroTrustScreen from './components/screens/ZeroTrustScreen.jsx'
 
-const DOMAIN_IDS = ['entraId', 'sharePoint', 'governance', 'emailSecurity', 'teams']
+const DOMAIN_IDS = ['baseline', 'entraId', 'sharePoint', 'governance', 'emailSecurity', 'teams']
 
 function scoreColor(v) {
   if (v == null) return 'var(--fg-3)'

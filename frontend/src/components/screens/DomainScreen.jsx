@@ -108,7 +108,14 @@ function collectorMetric(id, data) {
     case 'riskyUsers': return { value: `${(s.highRisk || 0) + (s.mediumRisk || 0)}`, sub: 'usuários em risco' }
     case 'licensing': return { value: `${s.totalLicenses ?? '?'}`, sub: `${s.totalAvailable ?? 0} disponíveis` }
     case 'users': return { value: `${s.total ?? '?'}`, sub: `${s.active ?? '?'} membros ativos` }
-    case 'usage': return { value: `${s.adoptionPercent ?? '?'}%`, sub: 'adoção M365 (30d)' }
+    case 'usage': {
+      const m365Unavail = s.m365MetricUnavailable || (s.m365Total === 0 && (s.services?.exchange?.active > 0 || s.services?.teams?.active > 0))
+      if (m365Unavail) {
+        const excPct = s.services?.exchange?.adoptionPercent
+        return { value: excPct != null ? `${excPct}%` : `${s.adoptionPercent ?? '?'}%`, sub: 'Exchange (métrica M365 via proxy)' }
+      }
+      return { value: `${s.adoptionPercent ?? '?'}%`, sub: 'adoção M365 (30d)' }
+    }
     case 'permissions': return { value: s.anonymousLinksAllowed ? 'Habilitado' : 'Restrito', sub: 'links anônimos' }
     case 'ownership': return { value: `${(s.ownerlessCount || 0) + (s.disabledOwnerCount || 0)}`, sub: 'sites sem owner válido' }
     case 'oversharing': return { value: `${s.sitesWithEveryoneCount ?? 0}`, sub: `sites com "Everyone" de ${s.sitesSampled ?? '?'} amostrados` }
@@ -428,16 +435,25 @@ const SVC_CONFIG = [
 function UsageDetailContent({ data }) {
   const s = data?.summary || {}
   const svcData = s.services || {}
-  const overall = s.adoptionPercent ?? null
+  const m365Unavail = s.m365MetricUnavailable || (s.m365Total === 0 && (svcData.exchange?.active > 0 || svcData.teams?.active > 0))
+  const overall = m365Unavail ? null : (s.adoptionPercent ?? null)
   const overallColor = overall == null ? 'var(--fg-3)' : overall >= 65 ? 'var(--score-5)' : overall >= 35 ? 'var(--score-3)' : 'var(--score-0)'
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-      <div style={{ display: 'flex', alignItems: 'baseline', gap: 8 }}>
-        <span style={{ fontWeight: 700, fontSize: 28, lineHeight: 1, color: overallColor }}>{overall ?? '?'}%</span>
-        <span className="t-sm" style={{ color: 'var(--fg-2)' }}>
-          M365 ativos (30d) · {s.m365Active ?? '?'} de {s.m365Total ?? '?'} usuários
-        </span>
-      </div>
+      {m365Unavail ? (
+        <div style={{ padding: '10px 14px', borderRadius: 8, background: 'var(--warn-bg)', border: '1px solid var(--warn-bd)' }}>
+          <span style={{ color: 'var(--warn-fg)', fontWeight: 600, fontSize: 13 }}>
+            Métrica M365 global indisponível para este tenant — adoção calculada por serviço abaixo.
+          </span>
+        </div>
+      ) : (
+        <div style={{ display: 'flex', alignItems: 'baseline', gap: 8 }}>
+          <span style={{ fontWeight: 700, fontSize: 28, lineHeight: 1, color: overallColor }}>{overall ?? '?'}%</span>
+          <span className="t-sm" style={{ color: 'var(--fg-2)' }}>
+            M365 ativos (30d) · {s.m365Active ?? '?'} de {s.m365Total ?? '?'} usuários
+          </span>
+        </div>
+      )}
       <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
         {SVC_CONFIG.map(svc => {
           const d = svcData[svc.key]

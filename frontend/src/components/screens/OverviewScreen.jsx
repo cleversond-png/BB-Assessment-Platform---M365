@@ -18,7 +18,12 @@ function domainSummary(id, domain) {
       const parts = []
       if (c.licensing?.summary?.totalLicenses) parts.push(`${c.licensing.summary.totalLicenses} licenças`)
       if (c.users?.summary?.total) parts.push(`${c.users.summary.total} usuários`)
-      if (c.usage?.summary?.adoptionPercent != null && c.usage?.summary?.m365Total > 0) parts.push(`${c.usage.summary.adoptionPercent}% adoção`)
+      const usage = c.usage?.summary
+      if (usage?.adoptionPercent != null && usage?.m365Total > 0) {
+        parts.push(`${usage.adoptionPercent}% adoção`)
+      } else if (usage?.m365MetricUnavailable || (usage?.m365Total === 0 && usage?.services?.exchange?.adoptionPercent != null)) {
+        parts.push(`Exchange ${usage.services.exchange.adoptionPercent}% adoção`)
+      }
       return parts.join(' · ') || '—'
     }
     case 'entraId': {

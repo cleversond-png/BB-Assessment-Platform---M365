@@ -64,13 +64,29 @@ async function collectUsage(tenantId) {
   }
 
   const m365Total = parsed.m365.active + parsed.m365.inactive;
-  // m365Total = 0 ocorre em tenants de educação/gov onde a coluna "Microsoft 365" do
-  // relatório não reflete licenças edu — tratar como dado não disponível em vez de 0%.
   const hasServiceData = parsed.exchange.active + parsed.teams.active +
     parsed.sharePoint.active + parsed.oneDrive.active > 0;
-  const adoptionPercent = m365Total > 0
-    ? Math.round((parsed.m365.active / m365Total) * 100)
-    : null;
+
+  let adoptionPercent;
+  let m365MetricUnavailable = false;
+
+  if (m365Total > 0) {
+    adoptionPercent = Math.round((parsed.m365.active / m365Total) * 100);
+  } else if (hasServiceData) {
+    // Coluna "Microsoft 365" vazia (comum em tenants business/SMB) — usar média
+    // de adoção por serviço como proxy. Marcado com m365MetricUnavailable para
+    // o frontend exibir a origem do dado.
+    const serviceRates = [parsed.exchange, parsed.teams, parsed.sharePoint, parsed.oneDrive]
+      .map(svc => { const t = svc.active + svc.inactive; return t > 0 ? svc.active / t : null; })
+      .filter(r => r !== null);
+    adoptionPercent = serviceRates.length > 0
+      ? Math.round(serviceRates.reduce((a, b) => a + b) / serviceRates.length * 100)
+      : null;
+    m365MetricUnavailable = true;
+  } else {
+    adoptionPercent = null;
+  }
+
   const score = adoptionPercent == null
     ? null
     : adoptionPercent >= 80 ? 5
@@ -93,6 +109,7 @@ async function collectUsage(tenantId) {
       m365Active: m365Total > 0 ? parsed.m365.active : null,
       m365Total: m365Total > 0 ? m365Total : null,
       adoptionPercent,
+      m365MetricUnavailable: m365MetricUnavailable || undefined,
       services: {
         exchange:   { active: parsed.exchange.active,   adoptionPercent: svcAdoption(parsed.exchange) },
         teams:      { active: parsed.teams.active,      adoptionPercent: svcAdoption(parsed.teams) },
