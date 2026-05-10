@@ -11,14 +11,18 @@ const MAX_WEIGHT = Object.values(COLLECTOR_WEIGHTS).reduce((a, b) => a + b, 0);
 async function runBaselineAssessment(tenantId) {
   logger.info({ event: 'assessment_start', domain: 'baseline', tenantId });
 
+  function safeCollect(name, fn) {
+    return fn().then(result => ({ name, result })).catch(err => ({ name, error: err?.message || String(err) }));
+  }
+
   // tenantInfo runs independently — it's metadata, not scored
   const [tenantInfoResult, scoredResults] = await Promise.allSettled([
     collectTenantInfo(tenantId),
-    Promise.allSettled([
-      collectLicensing(tenantId).then((r) => ({ name: 'licensing', result: r })),
-      collectUsersBaseline(tenantId).then((r) => ({ name: 'users', result: r })),
-      collectUsage(tenantId).then((r) => ({ name: 'usage', result: r })),
-      collectAppsChannel(tenantId).then((r) => ({ name: 'appsChannel', result: r })),
+    Promise.all([
+      safeCollect('licensing',   () => collectLicensing(tenantId)),
+      safeCollect('users',       () => collectUsersBaseline(tenantId)),
+      safeCollect('usage',       () => collectUsage(tenantId)),
+      safeCollect('appsChannel', () => collectAppsChannel(tenantId)),
     ]),
   ]);
 
@@ -32,14 +36,13 @@ async function runBaselineAssessment(tenantId) {
   }
 
   if (scoredResults.status === 'fulfilled') {
-    for (const settled of scoredResults.value) {
-      if (settled.status === 'fulfilled') {
-        const { name, result } = settled.value;
-        collectors[name] = result;
+    for (const { name, result, error } of scoredResults.value) {
+      if (error) {
+        errors[name] = error;
+        collectors[name] = { score: null, unavailable: true, reason: error };
+        logger.warn({ event: 'collector_error', collector: name, domain: 'baseline', tenantId, error });
       } else {
-        const err = settled.reason;
-        const name = err?.collectorName || 'unknown';
-        errors[name] = err?.message;
+        collectors[name] = result;
       }
     }
   }
