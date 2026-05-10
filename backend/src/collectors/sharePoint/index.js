@@ -36,8 +36,10 @@ async function runSharePointAssessment(tenantId) {
     try {
       results[name] = await fn();
     } catch (err) {
-      logger.error({ event: 'collector_error', collector: name, tenantId, error: err.message });
-      errors[name] = err.response?.data?.error?.message || err.message;
+      const reason = err.response?.data?.error?.message || err.message;
+      logger.error({ event: 'collector_error', collector: name, tenantId, error: reason });
+      errors[name] = reason;
+      results[name] = { score: null, unavailable: true, reason };
     }
   }));
 
