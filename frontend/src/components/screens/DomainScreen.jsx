@@ -73,8 +73,8 @@ const COLLECTOR_META = {
   // Teams
   teamsExternalAccess: { label: 'External Access',        weight: 2, requires: 'Policy.Read.All',
     description: 'Configurações de federação e acesso externo do Teams — controla se usuários externos podem iniciar contato e de quais domínios. Federação irrestrita amplia a superfície de engenharia social.' },
-  teamsSettings:       { label: 'Teams App Governance',   weight: 1, requires: 'Team.ReadBasic.All',
-    description: 'Governança de apps no Teams — se usuários podem instalar apps de terceiros sem aprovação do admin. Apps não revisadas podem expandir o escopo de dados acessíveis pelo Copilot.' },
+  teamsSettings:       { label: 'Teams App Governance',   weight: 1, requires: 'Teams Admin ou TeamworkDevice.Read.All',
+    description: 'Governança de apps no Teams — se usuários podem instalar apps de terceiros sem aprovação do admin. Apps não revisadas podem expandir o escopo de dados acessíveis pelo Copilot. Endpoint requer permissão de administrador Teams, indisponível via App Registration padrão.' },
   appsChannel:       { label: 'M365 Apps (desktop)',    weight: 2, requires: 'Reports.Read.All',
     description: 'Percentual de usuários com Microsoft 365 Apps instalado em dispositivo desktop. O Copilot só aparece no Office instalado — usuários web-only não têm acesso ao botão do Copilot.' },
 }
@@ -182,6 +182,43 @@ function collectorDetail(id, data) {
     case 'spf': return s.present ? `Registro SPF presente. Qualifier: ${s.qualifier || '?'}.` : 'Registro SPF ausente — domínio vulnerável a spoofing.'
     case 'dmarc': return s.present ? `DMARC configurado com p=${s.policy || '?'}.` : 'Registro DMARC ausente.'
     case 'dkim': return s.configured ? 'DKIM configurado para Exchange Online.' : 'DKIM não detectado para Exchange Online.'
+    case 'legacyAuth': {
+      const count = s.legacySignInCount ?? 0
+      if (count === 0) return `Nenhum sign-in via protocolo legado detectado nos últimos 30 dias. SMTP, IMAP e Basic Auth bloqueados com sucesso.`
+      return `${count} sign-in(s) via protocolo legado nos últimos 30 dias (${s.distinctUsers ?? 0} usuário(s) distintos). Protocolos detectados: SMTP, IMAP e similares ignoram MFA e Conditional Access — cada usuário afetado é um vetor de comprometimento não protegido.`
+    }
+    case 'sspr': {
+      const pct = s.coveragePercent ?? 0
+      return `${s.ssprRegistered ?? 0} de ${s.total ?? 0} usuários com SSPR configurado (${pct}% de cobertura). ${pct >= 80 ? 'Cobertura adequada.' : 'Usuários sem SSPR precisam resetar senha via helpdesk — processo mais lento e suscetível a engenharia social.'}`
+    }
+    case 'breakGlass': {
+      if (s.breakGlassDetected) return `${s.breakGlassCandidatesCount ?? 0} conta(s) break-glass detectada(s) — cloud-only, excluídas de todas as CA policies. Configuração recomendada para emergências de lockout administrativo.`
+      return `Nenhuma conta break-glass detectada entre os ${s.globalAdminCount ?? 0} Global Admins. Recomendado: ao menos 2 contas cloud-only excluídas de todas as CA policies como contingência de emergência.`
+    }
+    case 'appPermissions': {
+      const risky = s.appsWithHighRiskPerms ?? 0
+      const total = s.totalApps ?? 0
+      const expiring = s.secretsExpiringSoon ?? 0
+      if (risky === 0) return `${total} aplicações analisadas. Nenhuma com permissões de alto risco (Mail.ReadWrite, Files.ReadWrite.All etc.) via admin consent.${expiring > 0 ? ` Atenção: ${expiring} segredo(s) de app expirando nos próximos 30 dias.` : ''}`
+      return `${risky} de ${total} aplicações com permissões de alto risco (Mail.ReadWrite, Files.ReadWrite.All etc.) via admin consent. Cada app com essas permissões é um vetor potencial de exfiltração de dados — revisão e revogação recomendadas.${expiring > 0 ? ` ${expiring} segredo(s) expirando em breve.` : ''}`
+    }
+    case 'teamsExternalAccess': {
+      const open = s.allowsAllExternalDomains
+      const guest = s.guestAccessEnabled
+      const fedCount = s.federatedDomainsCount ?? 0
+      if (!open && !guest) return `Acesso externo totalmente restrito — federação e guest bloqueados. Máxima proteção contra engenharia social via Teams.`
+      if (!open && fedCount > 0) return `Federação restrita a ${fedCount} domínio(s) específico(s). Guest access ${guest ? 'habilitado' : 'bloqueado'}. Controle seletivo de parceiros externos — configuração adequada.`
+      if (!open) return `Federação não irrestrita. Guest access ${guest ? 'habilitado — monitore convidados inativos' : 'bloqueado'}.`
+      return `Federação com todos os domínios externos habilitada. Guest access ${guest ? 'habilitado' : 'bloqueado'}. Qualquer usuário externo pode iniciar contato — risco de engenharia social elevado.`
+    }
+    case 'teamsSettings': {
+      const thirdParty = s.thirdPartyAppsAllowed
+      const sideload = s.sideloadingEnabled
+      if (!thirdParty && !sideload) return `Apps de terceiros e sideloading bloqueados por política de admin. Apenas apps aprovados pelo administrador podem ser instalados no Teams.`
+      if (!thirdParty) return `Apps de terceiros bloqueados. Sideloading de apps customizados ainda permitido — avaliar se há necessidade de restringir.`
+      if (!sideload) return `Apps de terceiros permitidos, mas sideloading bloqueado. Recomendado revisar quais apps de terceiros estão autorizados na Teams Store.`
+      return `Sem controle de apps de terceiros — usuários podem instalar apps sem aprovação do admin. Apps não revisados podem expandir o escopo de dados acessíveis pelo Copilot.`
+    }
     default: return JSON.stringify(data.summary || data || {}, null, 2).slice(0, 300)
   }
 }
