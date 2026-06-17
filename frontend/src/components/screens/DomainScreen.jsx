@@ -13,7 +13,7 @@ const DOMAIN_META = {
 
 const COLLECTOR_META = {
   // Baseline
-  tenantInfo:        { label: 'Informações do Tenant', weight: null, requires: 'Organization.Read.All',
+  tenantInfo:        { label: 'Informações do Tenant', weight: null, informational: true, requires: 'Organization.Read.All',
     description: 'Coleta informações básicas do tenant: domínio principal, país, número de usuários, grupos, apps registrados e dispositivos no Entra ID.' },
   licensing:         { label: 'Licenciamento',          weight: 3,   requires: 'Organization.Read.All',
     description: 'Analisa SKUs de licença adquiridos, atribuídos e disponíveis. Licenças ociosas representam custo sem uso; superalocação pode indicar acesso indevido.' },
@@ -87,9 +87,15 @@ function scoreColor(score) {
   return 'var(--score-0)'
 }
 
-function collectorStatus(data) {
+function isInformationalCollector(id, data) {
+  const meta = COLLECTOR_META[id]
+  return Boolean(data && !data.unavailable && (data.informational || meta?.informational || meta?.weight == null))
+}
+
+function collectorStatus(id, data) {
   if (!data) return 'neutral'
   if (data.unavailable) return 'neutral'
+  if (isInformationalCollector(id, data)) return 'info'
   if (data.score == null) return 'neutral'
   if (data.score >= 4) return 'ok'
   if (data.score >= 3) return 'warn'
@@ -940,18 +946,18 @@ function OversharingDetailContent({ data }) {
   )
 }
 
-function ScoreChip({ value, compact }) {
+function ScoreChip({ value, compact, informational = false }) {
   const color = scoreColor(value)
   if (compact) {
     return (
       <div style={{ width: 36, height: 36, borderRadius: 8, background: `${color}1A`, color, display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700, fontSize: 14, flexShrink: 0 }}>
-        {value != null ? value.toFixed(1) : '—'}
+        {informational ? 'Info' : value != null ? value.toFixed(1) : '—'}
       </div>
     )
   }
   return (
     <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, padding: '2px 8px', borderRadius: 6, background: `${color}1A`, color, fontWeight: 600, fontSize: 12 }}>
-      {value != null ? `${value.toFixed(1)} / 5` : '—'}
+      {informational ? 'Informativo' : value != null ? `${value.toFixed(1)} / 5` : '—'}
     </span>
   )
 }
@@ -961,8 +967,9 @@ function CollectorDetail({ id, data, weight }) {
   const meta = COLLECTOR_META[id] || { label: id, requires: '—' }
   const metric = collectorMetric(id, data)
   const detail = collectorDetail(id, data)
-  const status = collectorStatus(data)
-  const statusLabel = { ok: 'OK', warn: 'Atenção', err: 'Crítico', neutral: 'Indisponível' }[status]
+  const status = collectorStatus(id, data)
+  const informational = isInformationalCollector(id, data)
+  const statusLabel = { ok: 'OK', warn: 'Atenção', err: 'Crítico', neutral: 'Indisponível', info: 'Coletado' }[status]
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
       <div>
@@ -970,7 +977,11 @@ function CollectorDetail({ id, data, weight }) {
         <div translate="no" className="t-h2" style={{ marginTop: 2 }}>{meta.label}</div>
       </div>
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 16, padding: '16px 0', borderTop: '1px solid var(--border-1)', borderBottom: '1px solid var(--border-1)' }}>
-        <MetricStat label="Score" value={data?.score != null ? `${data.score.toFixed(1)} / 5` : '—'} />
+        <MetricStat
+          label="Score"
+          value={informational ? 'Informativo' : data?.score != null ? `${data.score.toFixed(1)} / 5` : '—'}
+          sub={informational ? 'não entra no score do domínio' : undefined}
+        />
         {weight != null && <MetricStat label="Peso no domínio" value={String(weight)} />}
         <MetricStat label="Métrica" value={metric.value} sub={metric.sub} />
       </div>
@@ -1029,15 +1040,16 @@ function DomainExplainerCard({ collectorIds, collectors }) {
             const data   = collectors[id]
             const unavail = data?.unavailable
             const score   = data?.score
+            const info    = isInformationalCollector(id, data)
 
-            const statusText = unavail ? 'Indisponível' : score == null ? 'N/A' : score >= 4 ? 'Ótimo' : score >= 3 ? 'Bom' : score >= 2 ? 'Atenção' : 'Crítico'
-            const pillBg = unavail ? 'var(--bg-subtle)' : score >= 4 ? GREEN_ROW : score >= 2 ? 'var(--warn-bg)'           : 'var(--sev-critical-bg)'
-            const pillFg = unavail ? 'var(--fg-3)'      : score >= 4 ? GREEN_FG  : score >= 2 ? 'var(--warn-fg)'           : 'var(--sev-critical-fg)'
-            const pillBd = unavail ? 'var(--border-1)'  : score >= 4 ? GREEN_ICN : score >= 2 ? 'var(--warn-bd)'           : 'var(--sev-critical-bd)'
-            const iconName = unavail ? 'minus'          : score >= 3 ? 'check'   : 'alert-circle'
-            const iconBg   = unavail ? 'var(--bg-subtle)' : score >= 3 ? GREEN_ROW : 'var(--sev-critical-bg)'
-            const iconBd   = unavail ? 'var(--border-2)'  : score >= 3 ? GREEN_ICN : 'var(--sev-critical-bd)'
-            const iconFg   = unavail ? 'var(--fg-3)'      : score >= 3 ? GREEN_FG  : 'var(--sev-critical-fg)'
+            const statusText = unavail ? 'Indisponível' : info ? 'Coletado' : score == null ? 'N/A' : score >= 4 ? 'Ótimo' : score >= 3 ? 'Bom' : score >= 2 ? 'Atenção' : 'Crítico'
+            const pillBg = unavail ? 'var(--bg-subtle)' : info ? 'var(--info-bg)' : score >= 4 ? GREEN_ROW : score >= 2 ? 'var(--warn-bg)' : 'var(--sev-critical-bg)'
+            const pillFg = unavail ? 'var(--fg-3)'      : info ? 'var(--info-fg)' : score >= 4 ? GREEN_FG  : score >= 2 ? 'var(--warn-fg)' : 'var(--sev-critical-fg)'
+            const pillBd = unavail ? 'var(--border-1)'  : info ? 'var(--info-bd)' : score >= 4 ? GREEN_ICN : score >= 2 ? 'var(--warn-bd)' : 'var(--sev-critical-bd)'
+            const iconName = unavail ? 'minus'          : info || score >= 3 ? 'check' : 'alert-circle'
+            const iconBg   = unavail ? 'var(--bg-subtle)' : info || score >= 3 ? GREEN_ROW : 'var(--sev-critical-bg)'
+            const iconBd   = unavail ? 'var(--border-2)'  : info || score >= 3 ? GREEN_ICN : 'var(--sev-critical-bd)'
+            const iconFg   = unavail ? 'var(--fg-3)'      : info || score >= 3 ? GREEN_FG  : 'var(--sev-critical-fg)'
 
             return (
               <div key={id} style={{ display: 'grid', gridTemplateColumns: '26px 1fr auto', alignItems: 'flex-start', gap: 12, padding: '12px 18px', borderTop: `1px solid ${GREEN_BD}` }}>
@@ -1069,7 +1081,7 @@ export default function DomainScreen({ domainId, result, onBack }) {
   const [selected, setSelected] = useState(collectorIds[0] || null)
 
   const score = domain?.domainScore ?? 0
-  const availableCount = collectorIds.filter(id => !collectors[id]?.unavailable && collectors[id]?.score != null).length
+  const availableCount = collectorIds.filter(id => collectors[id] && !collectors[id]?.unavailable).length
 
   return (
     <>
@@ -1101,14 +1113,15 @@ export default function DomainScreen({ domainId, result, onBack }) {
           <Card padding={0}>
             <div style={{ padding: '14px 16px', borderBottom: '1px solid var(--border-1)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <div className="t-h3">Coletores ({collectorIds.length})</div>
-              <Pill tone="info">{availableCount}/{collectorIds.length} disponíveis</Pill>
+              <Pill tone="info">{availableCount}/{collectorIds.length} coletados</Pill>
             </div>
             {collectorIds.map(id => {
               const data = collectors[id]
               const cMeta = COLLECTOR_META[id] || { label: id, weight: null }
-              const status = collectorStatus(data)
+              const status = collectorStatus(id, data)
               const metric = collectorMetric(id, data)
               const isSelected = selected === id
+              const informational = isInformationalCollector(id, data)
               return (
                 <button key={id} onClick={() => setSelected(id)} style={{
                   display: 'flex', alignItems: 'center', gap: 12,
@@ -1119,14 +1132,14 @@ export default function DomainScreen({ domainId, result, onBack }) {
                   borderBottom: '1px solid var(--border-1)',
                   cursor: 'pointer', fontFamily: 'inherit',
                 }}>
-                  <ScoreChip value={data?.score} compact />
+                  <ScoreChip value={data?.score} compact informational={informational} />
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <div translate="no" className="t-body" style={{ fontWeight: 600 }}>{cMeta.label}</div>
                     <div className="t-sm" style={{ color: 'var(--fg-2)' }}>
                       {metric.value} · <span className="t-xs">{metric.sub}</span>
                     </div>
                   </div>
-                  <Pill tone={status} dot>{({ ok: 'OK', warn: 'Atenção', err: 'Crítico', neutral: 'N/A' })[status]}</Pill>
+                  <Pill tone={status} dot>{({ ok: 'OK', warn: 'Atenção', err: 'Crítico', neutral: 'N/A', info: 'Coletado' })[status]}</Pill>
                 </button>
               )
             })}

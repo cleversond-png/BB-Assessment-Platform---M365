@@ -30,6 +30,7 @@ async function collectTenantInfo(tenantId) {
   logger.info({ event: 'collector_done', collector: 'tenantInfo', tenantId, defaultDomain });
 
   return {
+    informational: true,
     displayName: org.displayName || null,
     defaultDomain,
     initialDomain,
