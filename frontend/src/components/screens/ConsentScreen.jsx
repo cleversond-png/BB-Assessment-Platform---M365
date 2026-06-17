@@ -12,10 +12,11 @@ function StatusPill({ status }) {
   return <Pill tone={tone}>{label}</Pill>
 }
 
-function CopyField({ value }) {
+function CopyField({ value, disabled = false }) {
   const [copied, setCopied] = useState(false)
 
   function copy() {
+    if (!value || disabled) return
     navigator.clipboard.writeText(value).then(() => {
       setCopied(true)
       setTimeout(() => setCopied(false), 2000)
@@ -43,6 +44,54 @@ function CopyField({ value }) {
       >
         {copied ? <Check size={13} /> : <Copy size={13} />}
       </button>
+    </div>
+  )
+}
+
+function ReadOnlyUrlField({ value, loading }) {
+  const [copied, setCopied] = useState(false)
+  const hasValue = Boolean(value)
+
+  function copy() {
+    if (!hasValue) return
+    navigator.clipboard.writeText(value).then(() => {
+      setCopied(true)
+      setTimeout(() => setCopied(false), 2000)
+    })
+  }
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+      <label style={{ fontSize: 12, color: 'var(--fg-3)', fontWeight: 500 }}>
+        URL de Consent
+      </label>
+      <textarea
+        value={value || ''}
+        readOnly
+        rows={4}
+        placeholder={loading ? 'Gerando URL de consentimento...' : 'Clique em Gerar URL para preencher este campo.'}
+        style={{
+          resize: 'vertical', minHeight: 88, padding: '10px 12px',
+          borderRadius: 'var(--r-md)', border: '1px solid var(--border-2)',
+          background: hasValue ? 'var(--bg-subtle)' : '#fff',
+          fontSize: 11, fontFamily: 'var(--font-mono)', color: 'var(--fg-1)',
+          lineHeight: 1.45, outline: 'none',
+        }}
+      />
+      <div style={{ display: 'flex', gap: 8 }}>
+        <Btn variant="secondary" size="sm" icon={copied ? 'check' : 'copy'} onClick={copy} disabled={!hasValue}>
+          {copied ? 'Copiado' : 'Copiar'}
+        </Btn>
+        <Btn
+          variant="secondary"
+          size="sm"
+          icon="external-link"
+          onClick={() => hasValue && window.open(value, '_blank', 'noopener')}
+          disabled={!hasValue}
+        >
+          Abrir
+        </Btn>
+      </div>
     </div>
   )
 }
@@ -114,6 +163,8 @@ export default function ConsentScreen({ initialTenantId = '', initialClientName 
 
   const tenantTrimmed = form.tenantId.trim()
   const tenantValid = tenantTrimmed === '' || TENANT_RE.test(tenantTrimmed)
+  const storedTenant = tenants.find((t) => t.tenantId.toLowerCase() === tenantTrimmed.toLowerCase())
+  const visibleConsentUrl = generatedUrl || storedTenant?.consentUrl || ''
 
   useEffect(() => {
     setForm((current) => ({
@@ -147,10 +198,12 @@ export default function ConsentScreen({ initialTenantId = '', initialClientName 
     setLoadingGen(true)
     setGenError(null)
     setGeneratedUrl(null)
+    const controller = new AbortController()
+    const timeout = setTimeout(() => controller.abort(), 20000)
     try {
       const params = new URLSearchParams({ tenant_id: form.tenantId.trim() })
       if (form.clientName.trim()) params.set('client_name', form.clientName.trim())
-      const res = await fetch(`/auth/consent?${params}`)
+      const res = await fetch(`/auth/consent?${params}`, { signal: controller.signal })
       if (!res.ok) {
         const body = await res.json().catch(() => ({}))
         throw new Error(body.error || `HTTP ${res.status}`)
@@ -159,8 +212,11 @@ export default function ConsentScreen({ initialTenantId = '', initialClientName 
       setGeneratedUrl(data.consentUrl)
       loadTenants()
     } catch (err) {
-      setGenError(err.message)
+      setGenError(err.name === 'AbortError'
+        ? 'Tempo esgotado ao gerar a URL. Verifique a conexão e tente novamente.'
+        : err.message)
     } finally {
+      clearTimeout(timeout)
       setLoadingGen(false)
     }
   }
@@ -253,6 +309,8 @@ export default function ConsentScreen({ initialTenantId = '', initialClientName 
           >
             {loadingGen ? 'Gerando…' : 'Gerar URL'}
           </Btn>
+
+          <ReadOnlyUrlField value={visibleConsentUrl} loading={loadingGen} />
 
           {genError && (
             <div style={{

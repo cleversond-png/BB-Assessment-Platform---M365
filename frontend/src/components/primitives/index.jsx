@@ -3,7 +3,7 @@ import {
   ChevronRight, ChevronDown, ChevronUp, ChevronsUpDown, AlertTriangle, Bell,
   LayoutDashboard, Building2, ShieldCheck, FolderTree, Scale, MailCheck, Sparkles,
   History, ScrollText, UsersRound, KeyRound, Play, Download, ExternalLink,
-  Check, X, Zap, CalendarRange, Filter, Link, OctagonX,
+  Check, X, Zap, CalendarRange, Filter, Link, OctagonX, Copy,
 } from 'lucide-react'
 
 export const ICONS = {
@@ -18,6 +18,7 @@ export const ICONS = {
   'play': Play, 'download': Download, 'external-link': ExternalLink,
   'check': Check, 'x': X, 'zap': Zap, 'calendar-range': CalendarRange,
   'filter': Filter, 'link': Link, 'octagon-x': OctagonX,
+  'copy': Copy,
 }
 
 export function Icon({ name, size = 16, style }) {

@@ -2,6 +2,7 @@ const axios = require('axios');
 const crypto = require('crypto');
 const config = require('../config');
 const tokenStore = require('./tokenStore');
+const consentStore = require('../store/consentStore');
 
 // Lista canônica de permissões Microsoft Graph (Application/Role) que a App Registration
 // precisa ter aprovadas. Mantenha em sincronia com azure/app-registration-permissions.json.
@@ -50,9 +51,13 @@ function generateConsentUrl(tenantId) {
 
 function validateState(state) {
   const tenantId = pendingStates.get(state);
-  if (!tenantId) return null;
-  pendingStates.delete(state);
-  return tenantId;
+  if (tenantId) {
+    pendingStates.delete(state);
+    return tenantId;
+  }
+
+  const persisted = consentStore.findByConsentState(state);
+  return persisted?.tenantId || null;
 }
 
 // After admin consent, acquire token using client credentials (app-only)

@@ -25,7 +25,7 @@ router.get('/consent', (req, res) => {
 
   try {
     const { url, state } = authService.generateConsentUrl(tenant_id.trim());
-    consentStore.addPending(tenant_id.trim(), client_name || '', url);
+    consentStore.addPending(tenant_id.trim(), client_name || '', url, state);
     logger.info({ event: 'consent_url_generated', tenantId: tenant_id, clientName: client_name, state });
     res.json({ consentUrl: url, state });
   } catch (err) {

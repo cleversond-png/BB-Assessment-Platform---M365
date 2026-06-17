@@ -20,15 +20,23 @@ function save(tenants) {
   fs.writeFileSync(FILE, JSON.stringify(tenants, null, 2));
 }
 
-function addPending(tenantId, clientName, consentUrl) {
+function addPending(tenantId, clientName, consentUrl, state) {
   const tenants = load();
   const existing = tenants.find((t) => t.tenantId === tenantId);
   if (existing) {
     existing.clientName = clientName || existing.clientName;
     existing.consentUrl = consentUrl;
+    existing.consentState = state || existing.consentState;
     existing.status = 'pending';
   } else {
-    tenants.push({ tenantId, clientName: clientName || '', consentUrl, consentedAt: null, status: 'pending' });
+    tenants.push({
+      tenantId,
+      clientName: clientName || '',
+      consentUrl,
+      consentState: state || null,
+      consentedAt: null,
+      status: 'pending',
+    });
   }
   save(tenants);
   logger.info({ event: 'consent_pending', tenantId, clientName });
@@ -59,8 +67,13 @@ function listTenants() {
   return load().filter((t) => t.tenantId && TENANT_RE.test(t.tenantId));
 }
 
+function findByConsentState(state) {
+  if (!state) return null;
+  return listTenants().find((t) => t.consentState === state) || null;
+}
+
 function hasTenant(tenantId) {
   return load().some((t) => t.tenantId === tenantId && t.status === 'consented');
 }
 
-module.exports = { addPending, markConsented, removeTenant, listTenants, hasTenant };
+module.exports = { addPending, markConsented, removeTenant, listTenants, findByConsentState, hasTenant };
