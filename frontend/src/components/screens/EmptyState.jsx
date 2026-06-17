@@ -6,7 +6,7 @@ function scoreColor(v) {
   return 'var(--score-0)'
 }
 
-export default function EmptyState({ tenantId, setTenantId, onRun, loading, error, savedReports = [], onLoad }) {
+export default function EmptyState({ tenantId, setTenantId, onRun, onOpenConsent, loading, error, savedReports = [], onLoad }) {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100%', gap: 24, padding: 32 }}>
       <div style={{
@@ -21,7 +21,7 @@ export default function EmptyState({ tenantId, setTenantId, onRun, loading, erro
       </div>
       <div style={{ textAlign: 'center', maxWidth: 480 }}>
         <h1 className="t-h1" style={{ marginBottom: 8 }}>Assessment Platform</h1>
-        <p className="t-sm">Insira o Tenant ID do cliente Microsoft 365 e clique em Rodar Assessment para iniciar a análise técnica completa.</p>
+        <p className="t-sm">Primeiro gere o consentimento administrativo do tenant. Depois que o admin aprovar, rode o assessment técnico completo.</p>
       </div>
 
       {savedReports.length > 0 && (
@@ -94,6 +94,20 @@ export default function EmptyState({ tenantId, setTenantId, onRun, loading, erro
           }}
         >
           {loading ? 'Executando…' : 'Rodar Assessment'}
+        </button>
+        <button
+          onClick={onOpenConsent}
+          disabled={!tenantId.trim()}
+          style={{
+            height: 40, padding: '0 18px', borderRadius: 'var(--r-md)',
+            background: '#fff', color: 'var(--brand-600)', border: '1px solid var(--brand-200)',
+            fontSize: 14, fontWeight: 500, fontFamily: 'inherit',
+            cursor: !tenantId.trim() ? 'not-allowed' : 'pointer',
+            opacity: !tenantId.trim() ? 0.6 : 1,
+            boxShadow: 'var(--shadow-1)',
+          }}
+        >
+          Gerar consentimento
         </button>
       </div>
       {error && (

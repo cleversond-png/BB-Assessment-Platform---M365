@@ -103,8 +103,8 @@ function DeleteButton({ tenantId, onDeleted }) {
 
 const TENANT_RE = /^([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}|[a-z0-9-]+\.onmicrosoft\.com)$/i
 
-export default function ConsentScreen() {
-  const [form, setForm] = useState({ tenantId: '', clientName: '' })
+export default function ConsentScreen({ initialTenantId = '', initialClientName = '' }) {
+  const [form, setForm] = useState({ tenantId: initialTenantId, clientName: initialClientName })
   const [generatedUrl, setGeneratedUrl] = useState(null)
   const [loadingGen, setLoadingGen] = useState(false)
   const [genError, setGenError] = useState(null)
@@ -114,6 +114,13 @@ export default function ConsentScreen() {
 
   const tenantTrimmed = form.tenantId.trim()
   const tenantValid = tenantTrimmed === '' || TENANT_RE.test(tenantTrimmed)
+
+  useEffect(() => {
+    setForm((current) => ({
+      tenantId: current.tenantId || initialTenantId,
+      clientName: current.clientName || initialClientName,
+    }))
+  }, [initialTenantId, initialClientName])
 
   const loadTenants = useCallback(async () => {
     setLoadingList(true)

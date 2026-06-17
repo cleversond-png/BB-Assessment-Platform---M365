@@ -174,6 +174,12 @@ export default function App() {
       })
       if (!res.ok) {
         const body = await res.json().catch(() => ({}))
+        if (res.status === 403 && body.error?.includes('No active consent')) {
+          setError('Consentimento administrativo necessário. Gere a URL de consentimento e peça para o admin do tenant aprovar antes de rodar o assessment.')
+          setScreen('consent')
+          setLoading(false)
+          return
+        }
         throw new Error(body.error || `HTTP ${res.status}`)
       }
       pollJobStatus(id).catch(err => {
@@ -189,7 +195,7 @@ export default function App() {
 
   function renderScreen() {
     // Telas independentes de assessment — acessíveis sempre
-    if (screen === 'consent') return <ConsentScreen />
+    if (screen === 'consent') return <ConsentScreen initialTenantId={tenantId} />
 
     if (loading) {
       const DOMAIN_LABELS = [
@@ -234,7 +240,18 @@ export default function App() {
     }
 
     if (!result) {
-      return <EmptyState tenantId={tenantId} setTenantId={setTenantId} onRun={runAssessment} loading={loading} error={error} savedReports={savedReports} onLoad={loadResult} />
+      return (
+        <EmptyState
+          tenantId={tenantId}
+          setTenantId={setTenantId}
+          onRun={runAssessment}
+          onOpenConsent={() => setScreen('consent')}
+          loading={loading}
+          error={error}
+          savedReports={savedReports}
+          onLoad={loadResult}
+        />
+      )
     }
 
     if (DOMAIN_IDS.includes(screen)) {
@@ -274,7 +291,7 @@ export default function App() {
       case 'tenants':
         return <SavedReportsList reports={savedReports} onLoad={loadResult} activeId={result?.tenantId} />
       case 'consent':
-        return <ConsentScreen />
+        return <ConsentScreen initialTenantId={tenantId} />
       default:
         return <OverviewScreen result={result} onSelectDomain={id => setScreen(id)} onOpenRec={() => setScreen('recommendations')} />
     }
