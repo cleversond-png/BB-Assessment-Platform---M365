@@ -31,9 +31,12 @@ if (process.env.NODE_ENV === 'production') {
     index: false,
     maxAge: '1h',
   }));
-  app.get('*', (_req, res) => {
-    res.set('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
-    res.sendFile(indexPath);
+  app.use((_req, res) => {
+    res.sendFile(indexPath, {
+      headers: {
+        'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate',
+      },
+    });
   });
 }
 
