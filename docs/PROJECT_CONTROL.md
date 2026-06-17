@@ -76,10 +76,23 @@ Solicitar ao responsavel do projeto antes de qualquer configuracao:
 
 Ambientes encontrados via Azure CLI:
 
-- Assinatura ativa: `PROJETO EDUGEST`.
-  - Resource groups: `rg-edugest-ops-prd-brs`, `rg-edugest-core-prd-brs`, `EDUGEST-ZERO_TRUST`.
-  - Key Vaults: `kv-edugest-ops-prd-brs`, `kv-edugest-core-7qwfay`.
-  - Container App publico encontrado: `ca-edugest-core-prd-brs`.
+- Ambiente oficial atual:
+  - Tenant: `PlantaoTiservicos.onmicrosoft.com`.
+  - Tenant ID: `71d33acc-618c-419d-95b9-c82d3802396b`.
+  - Assinatura: `PROJETO EDUGEST`.
+  - Subscription ID: `ad59449c-90b3-40e6-8ffa-6fe1fa88aedb`.
+  - Resource group: `EDUGEST-ZERO_TRUST`.
+  - Regiao principal usada: `centralus` para App Service, `eastus` para Key Vault/Storage.
+  - Web App: `bbassessment-zt`.
+  - URL temporaria funcional: `https://bbassessment-zt.azurewebsites.net`.
+  - App Service Plan: `asp-bbassess-zt-cus` (`B1`, Linux).
+  - App Registration multi-tenant: `BB Assessment Platform - M365`.
+  - Application Client ID: `a2408244-c10b-4783-9174-3db32c146eb7`.
+  - Key Vault: `kv-bbassess-zt`.
+  - Storage Account: `stbbassesszt`.
+  - Azure Files share: `assessment-data`, montado no Web App como `/home/data`.
+  - Runtime `AZURE_CLIENT_SECRET`: Key Vault reference, nao valor em claro.
+  - GitHub Actions: ultimo deploy validado com sucesso no run `27723108443`.
 - Assinatura adicional habilitada com nome `Azure subscription 1`.
   - Resource group relacionado ao projeto: `BB_Assessment_Platform`.
   - Web App relacionado ao projeto: `BBAssessment`.
@@ -87,4 +100,19 @@ Ambientes encontrados via Azure CLI:
   - Host customizado: `assessment.plantaoti.com.br`.
   - Estado observado: `AdminDisabled`.
 
-Pendencia: confirmar qual assinatura/tenant sera o alvo oficial de publicacao antes de alterar secrets, App Settings ou pipeline.
+## Dominio Customizado
+
+Dominio desejado: `assessment.plantaoti.com.br`.
+
+Estado atual: o CNAME ainda aponta para o Web App antigo:
+
+- `assessment.plantaoti.com.br` -> `bbassessment-g6hvg7f3ecfeasfb.brazilsouth-01.azurewebsites.net`
+
+Para migrar para o novo Web App:
+
+- Atualizar CNAME `assessment.plantaoti.com.br` para `bbassessment-zt.azurewebsites.net`.
+- Criar TXT `asuid.assessment.plantaoti.com.br` com o valor de verificacao do Web App:
+  `43BC8B56EAA9134B360AB4D973BDBD0290C4743C391E5D1B8F92437F24CCC794`
+- Apos propagacao, adicionar o hostname no Web App `bbassessment-zt`, habilitar TLS gerenciado e trocar `AZURE_REDIRECT_URI` para `https://assessment.plantaoti.com.br/auth/callback`.
+
+Enquanto o DNS nao for migrado, o runtime usa `https://bbassessment-zt.azurewebsites.net/auth/callback`.
