@@ -104,15 +104,12 @@ Ambientes encontrados via Azure CLI:
 
 Dominio desejado: `assessment.plantaoti.com.br`.
 
-Estado atual: o CNAME ainda aponta para o Web App antigo:
+Estado atual: dominio migrado para o novo Web App e validado com TLS gerenciado.
 
-- `assessment.plantaoti.com.br` -> `bbassessment-g6hvg7f3ecfeasfb.brazilsouth-01.azurewebsites.net`
+- `assessment.plantaoti.com.br` -> `bbassessment-zt.azurewebsites.net`
+- TXT `asuid.assessment.plantaoti.com.br` configurado com o valor de verificacao do Web App.
+- TLS: certificado gerenciado do App Service vinculado via SNI.
+- Health validado: `https://assessment.plantaoti.com.br/health` retorna `{"status":"ok"}`.
+- Runtime `AZURE_REDIRECT_URI`: `https://assessment.plantaoti.com.br/auth/callback`.
 
-Para migrar para o novo Web App:
-
-- Atualizar CNAME `assessment.plantaoti.com.br` para `bbassessment-zt.azurewebsites.net`.
-- Criar TXT `asuid.assessment.plantaoti.com.br` com o valor de verificacao do Web App:
-  `43BC8B56EAA9134B360AB4D973BDBD0290C4743C391E5D1B8F92437F24CCC794`
-- Apos propagacao, adicionar o hostname no Web App `bbassessment-zt`, habilitar TLS gerenciado e trocar `AZURE_REDIRECT_URI` para `https://assessment.plantaoti.com.br/auth/callback`.
-
-Enquanto o DNS nao for migrado, o runtime usa `https://bbassessment-zt.azurewebsites.net/auth/callback`.
+URL final de producao: `https://assessment.plantaoti.com.br`.
