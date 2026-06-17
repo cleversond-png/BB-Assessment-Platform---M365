@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { PageHeader, Card, Btn, Pill, MetricStat, Icon } from '../primitives/index.jsx'
 
 const DOMAIN_META = {
@@ -85,6 +85,13 @@ function scoreColor(score) {
   if (score >= 3) return 'var(--score-3)'
   if (score >= 2) return 'var(--score-2)'
   return 'var(--score-0)'
+}
+
+function displayScore(data) {
+  if (!data) return null
+  if (typeof data.score === 'number') return data.score
+  if (data.unavailable) return 0
+  return null
 }
 
 function isInformationalCollector(id, data) {
@@ -969,6 +976,7 @@ function CollectorDetail({ id, data, weight }) {
   const detail = collectorDetail(id, data)
   const status = collectorStatus(id, data)
   const informational = isInformationalCollector(id, data)
+  const scoreValue = displayScore(data)
   const statusLabel = { ok: 'OK', warn: 'Atenção', err: 'Crítico', neutral: 'Indisponível', info: 'Coletado' }[status]
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
@@ -979,7 +987,7 @@ function CollectorDetail({ id, data, weight }) {
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 16, padding: '16px 0', borderTop: '1px solid var(--border-1)', borderBottom: '1px solid var(--border-1)' }}>
         <MetricStat
           label="Score"
-          value={informational ? 'Informativo' : data?.score != null ? `${data.score.toFixed(1)} / 5` : '—'}
+          value={informational ? 'Informativo' : scoreValue != null ? `${scoreValue.toFixed(1)} / 5` : '—'}
           sub={informational ? 'não entra no score do domínio' : undefined}
         />
         {weight != null && <MetricStat label="Peso no domínio" value={String(weight)} />}
@@ -1080,6 +1088,12 @@ export default function DomainScreen({ domainId, result, onBack }) {
   const collectorIds = Object.keys(collectors)
   const [selected, setSelected] = useState(collectorIds[0] || null)
 
+  useEffect(() => {
+    if (!collectorIds.includes(selected)) {
+      setSelected(collectorIds[0] || null)
+    }
+  }, [domainId, collectorIds.join('|'), selected])
+
   const score = domain?.domainScore ?? 0
   const availableCount = collectorIds.filter(id => collectors[id] && !collectors[id]?.unavailable).length
 
@@ -1122,6 +1136,7 @@ export default function DomainScreen({ domainId, result, onBack }) {
               const metric = collectorMetric(id, data)
               const isSelected = selected === id
               const informational = isInformationalCollector(id, data)
+              const scoreValue = displayScore(data)
               return (
                 <button key={id} onClick={() => setSelected(id)} style={{
                   display: 'flex', alignItems: 'center', gap: 12,
@@ -1132,7 +1147,7 @@ export default function DomainScreen({ domainId, result, onBack }) {
                   borderBottom: '1px solid var(--border-1)',
                   cursor: 'pointer', fontFamily: 'inherit',
                 }}>
-                  <ScoreChip value={data?.score} compact informational={informational} />
+                  <ScoreChip value={scoreValue} compact informational={informational} />
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <div translate="no" className="t-body" style={{ fontWeight: 600 }}>{cMeta.label}</div>
                     <div className="t-sm" style={{ color: 'var(--fg-2)' }}>
