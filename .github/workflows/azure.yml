@@ -3,6 +3,7 @@ name: Deploy to Azure App Service
 on:
   push:
     branches: [main]
+  workflow_dispatch:
 
 jobs:
   build-and-deploy:
@@ -13,7 +14,7 @@ jobs:
 
       - uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          node-version: '22'
 
       - name: Install backend dependencies
         run: npm install --prefix backend
@@ -24,8 +25,17 @@ jobs:
       - name: Build frontend
         run: npm run --prefix frontend build
 
+      - name: Prepare deployment package
+        run: |
+          mkdir -p deploy-package/frontend
+          cp package.json deploy-package/package.json
+          cp -R backend deploy-package/backend
+          rm -rf deploy-package/backend/data
+          cp -R frontend/dist deploy-package/frontend/dist
+
       - name: Deploy to Azure App Service
         uses: azure/webapps-deploy@v3
         with:
           app-name: ${{ secrets.AZURE_WEBAPP_NAME }}
           publish-profile: ${{ secrets.AZURE_WEBAPP_PUBLISH_PROFILE }}
+          package: deploy-package
