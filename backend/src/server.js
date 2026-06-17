@@ -21,8 +21,20 @@ app.get('/health', (_req, res) => res.json({ status: 'ok' }));
 
 if (process.env.NODE_ENV === 'production') {
   const distPath = path.join(__dirname, '../../frontend/dist');
-  app.use(express.static(distPath));
-  app.get('*', (_req, res) => res.sendFile(path.join(distPath, 'index.html')));
+  const indexPath = path.join(distPath, 'index.html');
+
+  app.use('/assets', express.static(path.join(distPath, 'assets'), {
+    immutable: true,
+    maxAge: '1y',
+  }));
+  app.use(express.static(distPath, {
+    index: false,
+    maxAge: '1h',
+  }));
+  app.get('*', (_req, res) => {
+    res.set('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+    res.sendFile(indexPath);
+  });
 }
 
 app.listen(serverConfig.port, async () => {
