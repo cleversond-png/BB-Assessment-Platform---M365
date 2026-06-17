@@ -22,6 +22,7 @@ const REQUIRED_PERMISSIONS = [
   { name: 'UserAuthenticationMethod.Read.All',  category: 'Identidade',     collectors: ['mfa', 'sspr'], requires: 'Entra ID P1' },
   { name: 'Application.Read.All',               category: 'Identidade',     collectors: ['appPermissions'] },
   { name: 'Team.ReadBasic.All',                 category: 'Teams',          collectors: ['teamsExternalAccess', 'teamsSettings'] },
+  { name: 'SecurityAlert.Read.All',             category: 'Governança',     collectors: ['dlp (proxy via alerts)'] },
 ];
 
 // Pending consent requests: state -> tenantId (CSRF protection)
