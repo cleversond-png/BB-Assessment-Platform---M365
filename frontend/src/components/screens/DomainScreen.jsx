@@ -110,8 +110,16 @@ function collectorStatus(id, data) {
 }
 
 function collectorMetric(id, data) {
-  if (!data || data.unavailable) return { value: '—', sub: 'indisponível' }
+  if (!data) return { value: '—', sub: 'indisponível' }
   const s = data.summary || {}
+  if (data.unavailable) {
+    switch (id) {
+      case 'legacyAuth': return { value: 'Não verificado', sub: 'sign-in logs indisponíveis' }
+      case 'breakGlass': return { value: 'Não configurado', sub: 'sem evidência coletada' }
+      case 'riskyUsers': return { value: 'Não configurado', sub: 'Identity Protection/P2' }
+      default: return { value: '—', sub: 'indisponível' }
+    }
+  }
   switch (id) {
     case 'tenantInfo': return { value: data.defaultDomain || data.displayName || '—', sub: data.country || 'domínio padrão' }
     case 'mfa': return { value: `${s.coveragePercent ?? '—'}%`, sub: (s.mfaRegistered != null && s.total != null) ? `${s.mfaRegistered} / ${s.total} usuários` : 'usuários com MFA' }
@@ -148,13 +156,32 @@ function collectorMetric(id, data) {
     case 'appPermissions':       return { value: `${s.appsWithHighRiskPerms ?? 0}`, sub: `apps com permissões alto risco de ${s.totalApps ?? 0}` }
     case 'teamsExternalAccess':  return { value: s.allowsAllExternalDomains ? 'Aberto' : 'Restrito', sub: `${s.federatedDomainsCount ?? 0} domínios federados` }
     case 'teamsSettings':        return { value: s.thirdPartyAppsAllowed ? 'Sem controle' : 'Governado', sub: 'apps de terceiros' }
-    case 'appsChannel':          return { value: `${s.desktopPercent ?? '?'}%`, sub: 'usuários com desktop client' }
+    case 'appsChannel': {
+      const denominator = s.eligibleLicenseUsers || s.totalUsers
+      const installed = s.desktopUsersCount ?? ((s.windowsUsersCount ?? 0) + (s.macUsersCount ?? 0))
+      return {
+        value: `${s.desktopPercent ?? '?'}%`,
+        sub: denominator ? `${installed} de ${denominator} elegíveis instalaram` : 'usuários com desktop client',
+      }
+    }
     default: return { value: `${data.score?.toFixed(1) ?? '?'}`, sub: 'score' }
   }
 }
 
 function collectorDetail(id, data) {
-  if (!data || data.unavailable) return 'Recurso indisponível — verifique a licença ou a permissão necessária.'
+  if (!data) return 'Recurso indisponível — verifique a licença ou a permissão necessária.'
+  if (data.unavailable) {
+    switch (id) {
+      case 'legacyAuth':
+        return 'Não foi possível verificar sign-ins por autenticação legada. Confirme AuditLog.Read.All e disponibilidade dos sign-in logs no tenant antes de considerar o risco como tratado.'
+      case 'breakGlass':
+        return 'Nenhuma evidência de conta break-glass configurada foi coletada. Trate como não configurado até validar ao menos 2 contas cloud-only de emergência excluídas das políticas de Conditional Access.'
+      case 'riskyUsers':
+        return 'Identity Protection não está disponível ou não foi licenciado/consentido para coleta. Trate como não configurado para readiness de Copilot, pois o tenant não demonstrou visibilidade de usuários em risco.'
+      default:
+        return 'Recurso indisponível — verifique a licença ou a permissão necessária.'
+    }
+  }
   const s = data.summary || {}
   switch (id) {
     case 'tenantInfo': {
@@ -238,6 +265,14 @@ function collectorDetail(id, data) {
       if (!thirdParty) return `Apps de terceiros bloqueados. Sideloading de apps customizados ainda permitido — avaliar se há necessidade de restringir.`
       if (!sideload) return `Apps de terceiros permitidos, mas sideloading bloqueado. Recomendado revisar quais apps de terceiros estão autorizados na Teams Store.`
       return `Sem controle de apps de terceiros — usuários podem instalar apps sem aprovação do admin. Apps não revisados podem expandir o escopo de dados acessíveis pelo Copilot.`
+    }
+    case 'appsChannel': {
+      const denominator = s.eligibleLicenseUsers || s.totalUsers
+      const installed = s.desktopUsersCount ?? ((s.windowsUsersCount ?? 0) + (s.macUsersCount ?? 0))
+      const basis = s.eligibleLicenseUsers
+        ? 'usuários com licença que inclui instalação desktop'
+        : 'usuários reportados no relatório de M365 Apps'
+      return `${installed} de ${denominator ?? '?'} ${basis} usaram M365 Apps em Windows ou Mac nos últimos 30 dias (${s.desktopPercent ?? '?'}%). Windows: ${s.windowsUsersCount ?? 0}, Mac: ${s.macUsersCount ?? 0}, web-only: ${s.webOnlyUsersCount ?? 0}. ${s.channelNote || 'Verificar canal de atualização no Intune.'}`
     }
     default: return JSON.stringify(data.summary || data || {}, null, 2).slice(0, 300)
   }

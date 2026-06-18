@@ -385,8 +385,10 @@ const RULES = [
     severity: 'high',
     category: 'Adoção',
     finding: (r) => {
-      const { desktopPercent, totalUsers } = r.baseline.collectors.appsChannel.summary;
-      return `Apenas ${desktopPercent}% dos ${totalUsers} usuários ativos utilizam M365 Apps em desktop — Copilot requer cliente desktop (não disponível via web apenas).`;
+      const { desktopPercent, totalUsers, eligibleLicenseUsers, desktopUsersCount, windowsUsersCount, macUsersCount } = r.baseline.collectors.appsChannel.summary;
+      const denominator = eligibleLicenseUsers || totalUsers;
+      const installed = desktopUsersCount ?? ((windowsUsersCount ?? 0) + (macUsersCount ?? 0));
+      return `Apenas ${desktopPercent}% (${installed} de ${denominator}) dos usuários com licença que dá direito à instalação utilizam M365 Apps em desktop — Copilot requer cliente desktop (não disponível via web apenas).`;
     },
     recommendation: 'Garantir que usuários que precisarão do Copilot tenham M365 Apps instalado no desktop. Verificar também no Intune se as instalações estão no Current Channel ou Monthly Enterprise Channel — Semi-Annual Channel não suporta Copilot.',
     effort: 'medium',

@@ -15,15 +15,11 @@ async function runBaselineAssessment(tenantId) {
     return fn().then(result => ({ name, result })).catch(err => ({ name, error: err?.message || String(err) }));
   }
 
-  // tenantInfo runs independently — it's metadata, not scored
-  const [tenantInfoResult, scoredResults] = await Promise.allSettled([
+  // tenantInfo runs independently — it's metadata, not scored. Licensing runs before
+  // appsChannel because the apps denominator must be users entitled to desktop install.
+  const [tenantInfoResult, licensingResult] = await Promise.allSettled([
     collectTenantInfo(tenantId),
-    Promise.all([
-      safeCollect('licensing',   () => collectLicensing(tenantId)),
-      safeCollect('users',       () => collectUsersBaseline(tenantId)),
-      safeCollect('usage',       () => collectUsage(tenantId)),
-      safeCollect('appsChannel', () => collectAppsChannel(tenantId)),
-    ]),
+    collectLicensing(tenantId),
   ]);
 
   const collectors = {};
@@ -35,15 +31,28 @@ async function runBaselineAssessment(tenantId) {
     errors.tenantInfo = tenantInfoResult.reason?.message;
   }
 
-  if (scoredResults.status === 'fulfilled') {
-    for (const { name, result, error } of scoredResults.value) {
-      if (error) {
-        errors[name] = error;
-        collectors[name] = { score: null, unavailable: true, reason: error };
-        logger.warn({ event: 'collector_error', collector: name, domain: 'baseline', tenantId, error });
-      } else {
-        collectors[name] = result;
-      }
+  if (licensingResult.status === 'fulfilled') {
+    collectors.licensing = licensingResult.value;
+  } else {
+    const error = licensingResult.reason?.message || String(licensingResult.reason);
+    errors.licensing = error;
+    collectors.licensing = { score: null, unavailable: true, reason: error };
+    logger.warn({ event: 'collector_error', collector: 'licensing', domain: 'baseline', tenantId, error });
+  }
+
+  const scoredResults = await Promise.all([
+    safeCollect('users',       () => collectUsersBaseline(tenantId)),
+    safeCollect('usage',       () => collectUsage(tenantId)),
+    safeCollect('appsChannel', () => collectAppsChannel(tenantId, collectors.licensing)),
+  ]);
+
+  for (const { name, result, error } of scoredResults) {
+    if (error) {
+      errors[name] = error;
+      collectors[name] = { score: null, unavailable: true, reason: error };
+      logger.warn({ event: 'collector_error', collector: name, domain: 'baseline', tenantId, error });
+    } else {
+      collectors[name] = result;
     }
   }
 

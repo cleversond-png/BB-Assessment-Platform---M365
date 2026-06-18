@@ -72,6 +72,26 @@ const SKU_DISPLAY_NAMES = {
   'POWERAPPS_VIRAL':                   'Power Apps Free',
 };
 
+const DESKTOP_APPS_SKUS = new Set([
+  'O365_BUSINESS_PREMIUM',     // Microsoft 365 Business Standard
+  'SPB',                       // Microsoft 365 Business Premium
+  'O365_BUSINESS',             // Microsoft 365 Apps for business
+  'OFFICESUBSCRIPTION',        // Microsoft 365 Apps for enterprise
+  'ENTERPRISEPACK',            // Office 365 E3
+  'ENTERPRISEPREMIUM',         // Office 365 E5
+  'SPE_E3',                    // Microsoft 365 E3
+  'SPE_E5',                    // Microsoft 365 E5
+  'M365EDU_A3_FACULTY',
+  'M365EDU_A3_STUDENT',
+  'M365EDU_A3_ESTUDANTEBNFT',
+  'M365EDU_A5_FACULTY',
+  'M365EDU_A5_STUDENT',
+  'ENTERPRISEPACKPLUS_FACULTY',
+  'ENTERPRISEPACKPLUS_STUUSEBNFT',
+  'ENTERPRISEPREMIUM_FACULTY',
+  'ENTERPRISEPREMIUM_STUDENT',
+]);
+
 function shouldExclude(skuPartNumber) {
   const p = skuPartNumber?.toUpperCase() || '';
   return EXCLUDE_KEYWORDS.some((k) => p.includes(k));
@@ -84,6 +104,10 @@ function isFree(skuPartNumber) {
 
 function getDisplayName(skuPartNumber) {
   return SKU_DISPLAY_NAMES[skuPartNumber] || skuPartNumber;
+}
+
+function includesDesktopApps(skuPartNumber) {
+  return DESKTOP_APPS_SKUS.has(skuPartNumber?.toUpperCase() || '');
 }
 
 // SKUs que incluem Entra ID P2 como service plan embutido
@@ -178,6 +202,7 @@ async function collectLicensing(tenantId) {
       assigned,
       available,
       isFree: free,
+      includesDesktopApps: includesDesktopApps(sku.skuPartNumber),
     };
   });
 
@@ -202,6 +227,12 @@ async function collectLicensing(tenantId) {
       unusedRatioPercent: Math.round(unusedRatio * 100),
       paidLicenses,
       freeLicenses,
+      desktopAppsEligibleAssigned: skuList
+        .filter((sku) => sku.includesDesktopApps)
+        .reduce((sum, sku) => sum + sku.assigned, 0),
+      desktopAppsEligibleLicenses: skuList
+        .filter((sku) => sku.includesDesktopApps)
+        .reduce((sum, sku) => sum + sku.enabled, 0),
     },
     skus: skuList.sort((a, b) => b.assigned - a.assigned),
   };
