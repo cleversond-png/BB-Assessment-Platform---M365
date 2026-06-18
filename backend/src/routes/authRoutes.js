@@ -5,8 +5,57 @@ const consentStore = require('../store/consentStore');
 const resultsStore = require('../store/resultsStore');
 const { TENANT_RE } = require('../config');
 const logger = require('../logger');
+const portalAuth = require('../auth/portalAuth');
 
 const router = express.Router();
+
+router.get('/session', portalAuth.sessionHandler);
+router.post('/login', portalAuth.loginHandler);
+router.post('/logout', portalAuth.logoutHandler);
+
+// GET /auth/callback
+// Microsoft redirects here after admin grants consent. This must remain public
+// because the customer admin is redirected by Entra during the consent flow.
+router.get('/callback', async (req, res) => {
+  const { admin_consent, tenant, state, error, error_description } = req.query;
+
+  if (error) {
+    logger.warn({ event: 'consent_denied', error, error_description, state });
+    return res.status(400).json({ error, description: error_description });
+  }
+
+  if (admin_consent !== 'True') {
+    return res.status(400).json({ error: 'Admin consent not granted' });
+  }
+
+  const originalTenantId = authService.validateState(state);
+  const tenantId = tenant || originalTenantId;
+  if (!tenantId) {
+    logger.warn({ event: 'callback_no_tenant_no_state', state });
+    return res.status(400).json({ error: 'Tenant não retornado pelo Azure e state inválido' });
+  }
+  if (originalTenantId && originalTenantId !== tenantId) {
+    logger.warn({ event: 'tenant_mismatch', originalTenantId, msTenant: tenantId, state });
+    try { consentStore.removeTenant(originalTenantId); } catch { /* noop */ }
+  }
+
+  try {
+    await authService.acquireTokenForTenant(tenantId);
+    consentStore.markConsented(tenantId);
+    logger.info({ event: 'token_acquired', tenantId });
+    res.json({ success: true, tenantId, message: 'Consent granted and token stored.' });
+  } catch (err) {
+    const azureError = err.response?.data || null;
+    logger.error({ event: 'token_acquisition_error', tenantId, error: err.message, azureError });
+    res.status(500).json({
+      error: 'Failed to acquire token after consent',
+      detail: err.message,
+      azureError,
+    });
+  }
+});
+
+router.use(portalAuth.requirePortalAuth);
 
 // GET /auth/consent?tenant_id=<customerTenantId>&client_name=<clientName>
 // Returns the admin consent URL to send to the customer and registers a pending entry
@@ -31,51 +80,6 @@ router.get('/consent', (req, res) => {
   } catch (err) {
     logger.error({ event: 'consent_url_error', error: err.message });
     res.status(500).json({ error: 'Failed to generate consent URL' });
-  }
-});
-
-// GET /auth/callback
-// Microsoft redirects here after admin grants consent
-router.get('/callback', async (req, res) => {
-  const { admin_consent, tenant, state, error, error_description } = req.query;
-
-  if (error) {
-    logger.warn({ event: 'consent_denied', error, error_description, state });
-    return res.status(400).json({ error, description: error_description });
-  }
-
-  if (admin_consent !== 'True') {
-    return res.status(400).json({ error: 'Admin consent not granted' });
-  }
-
-  // O `tenant` retornado pelo Microsoft é a fonte autoritativa do tenantId que consentiu.
-  // O valor do state é apenas o que o operador digitou — pode estar errado/diferente.
-  // Sempre que `tenant` estiver presente, usar ele para o token endpoint.
-  const originalTenantId = authService.validateState(state); // pode ser null
-  const tenantId = tenant || originalTenantId;
-  if (!tenantId) {
-    logger.warn({ event: 'callback_no_tenant_no_state', state });
-    return res.status(400).json({ error: 'Tenant não retornado pelo Azure e state inválido' });
-  }
-  if (originalTenantId && originalTenantId !== tenantId) {
-    logger.warn({ event: 'tenant_mismatch', originalTenantId, msTenant: tenantId, state });
-    // operador digitou o tenant_id errado — limpar a entrada-fantasma do consentStore
-    try { consentStore.removeTenant(originalTenantId); } catch { /* noop */ }
-  }
-
-  try {
-    await authService.acquireTokenForTenant(tenantId);
-    consentStore.markConsented(tenantId);
-    logger.info({ event: 'token_acquired', tenantId });
-    res.json({ success: true, tenantId, message: 'Consent granted and token stored.' });
-  } catch (err) {
-    const azureError = err.response?.data || null;
-    logger.error({ event: 'token_acquisition_error', tenantId, error: err.message, azureError });
-    res.status(500).json({
-      error: 'Failed to acquire token after consent',
-      detail: err.message,
-      azureError,
-    });
   }
 });
 

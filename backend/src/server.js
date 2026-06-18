@@ -5,6 +5,7 @@ const { validateConfig, server: serverConfig } = require('./config');
 const authRoutes = require('./routes/authRoutes');
 const assessmentRoutes = require('./routes/assessmentRoutes');
 const companyRoutes = require('./routes/companyRoutes');
+const portalAuth = require('./auth/portalAuth');
 const { acquireTokenForTenant } = require('./auth/authService');
 const consentStore = require('./store/consentStore');
 const logger = require('./logger');
@@ -16,8 +17,8 @@ app.use(cors());
 app.use(express.json());
 
 app.use('/auth', authRoutes);
-app.use('/assessment', assessmentRoutes);
-app.use('/companies', companyRoutes);
+app.use('/assessment', portalAuth.requirePortalAuth, assessmentRoutes);
+app.use('/companies', portalAuth.requirePortalAuth, companyRoutes);
 
 app.get('/health', (_req, res) => res.json({ status: 'ok' }));
 

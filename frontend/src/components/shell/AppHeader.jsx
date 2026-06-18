@@ -57,7 +57,7 @@ function TenantPill({ result }) {
   )
 }
 
-export default function AppHeader({ result, onRun, loading, tenantId, setTenantId }) {
+export default function AppHeader({ result, onRun, loading, tenantId, setTenantId, user, onLogout }) {
   return (
     <header style={{
       display: 'flex', alignItems: 'center', justifyContent: 'space-between',
@@ -93,7 +93,8 @@ export default function AppHeader({ result, onRun, loading, tenantId, setTenantI
         <button style={{ width: 32, height: 32, borderRadius: 8, background: 'transparent', border: '1px solid transparent', cursor: 'pointer', color: 'var(--fg-2)', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>
           <Bell size={16} strokeWidth={1.75} />
         </button>
-        <div style={{ width: 32, height: 32, borderRadius: 999, background: 'linear-gradient(135deg, var(--brand-400), var(--brand-600))', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontSize: 12, fontWeight: 600 }}>BB</div>
+        <div title={user?.username} style={{ width: 32, height: 32, borderRadius: 999, background: 'linear-gradient(135deg, var(--brand-400), var(--brand-600))', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontSize: 12, fontWeight: 600 }}>BB</div>
+        <Btn variant="ghost" size="sm" icon="x" onClick={onLogout}>Sair</Btn>
       </div>
     </header>
   )

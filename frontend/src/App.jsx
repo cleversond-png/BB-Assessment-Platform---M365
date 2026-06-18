@@ -13,6 +13,124 @@ import CompanyRegistryScreen from './components/screens/CompanyRegistryScreen.js
 
 const DOMAIN_IDS = ['baseline', 'entraId', 'sharePoint', 'governance', 'emailSecurity', 'teams']
 
+function LoginScreen({ onLogin }) {
+  const [form, setForm] = useState({ username: 'Admin.Assessment', password: '' })
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState(null)
+
+  async function submit(e) {
+    e.preventDefault()
+    setLoading(true)
+    setError(null)
+    try {
+      const res = await fetch('/auth/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(form),
+      })
+      const data = await res.json().catch(() => ({}))
+      if (!res.ok) throw new Error(data.error || `HTTP ${res.status}`)
+      onLogin(data.user)
+    } catch (err) {
+      setError(err.message)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  return (
+    <div style={{
+      minHeight: '100vh',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      background: 'var(--bg-app)',
+      padding: 24,
+    }}>
+      <form onSubmit={submit} style={{
+        width: '100%',
+        maxWidth: 420,
+        padding: 28,
+        borderRadius: 'var(--r-xl)',
+        background: 'var(--bg-card)',
+        border: '1px solid var(--border-1)',
+        boxShadow: 'var(--shadow-2)',
+        display: 'flex',
+        flexDirection: 'column',
+        gap: 18,
+      }}>
+        <div>
+          <div className="t-h1">Assessment Platform</div>
+          <div className="t-sm" style={{ marginTop: 6, color: 'var(--fg-3)' }}>
+            Entre para acessar o portal.
+          </div>
+        </div>
+
+        <label style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+          <span className="t-2xs">Usuário</span>
+          <input
+            value={form.username}
+            onChange={e => setForm(f => ({ ...f, username: e.target.value }))}
+            autoComplete="username"
+            style={{
+              height: 40,
+              padding: '0 12px',
+              borderRadius: 'var(--r-md)',
+              border: '1px solid var(--border-2)',
+              fontSize: 14,
+              fontFamily: 'var(--font-mono)',
+              outline: 'none',
+            }}
+          />
+        </label>
+
+        <label style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+          <span className="t-2xs">Senha</span>
+          <input
+            value={form.password}
+            onChange={e => setForm(f => ({ ...f, password: e.target.value }))}
+            type="password"
+            autoComplete="current-password"
+            autoFocus
+            style={{
+              height: 40,
+              padding: '0 12px',
+              borderRadius: 'var(--r-md)',
+              border: '1px solid var(--border-2)',
+              fontSize: 14,
+              fontFamily: 'var(--font-mono)',
+              outline: 'none',
+            }}
+          />
+        </label>
+
+        {error && (
+          <div className="t-sm" style={{ color: 'var(--err-fg)', background: 'var(--err-bg)', border: '1px solid var(--err-bd)', borderRadius: 'var(--r-md)', padding: '10px 12px' }}>
+            {error}
+          </div>
+        )}
+
+        <button
+          disabled={loading || !form.username.trim() || !form.password}
+          style={{
+            height: 40,
+            borderRadius: 'var(--r-md)',
+            border: 'none',
+            background: 'var(--brand-500)',
+            color: '#fff',
+            fontWeight: 600,
+            fontFamily: 'inherit',
+            cursor: loading ? 'wait' : 'pointer',
+            opacity: loading || !form.username.trim() || !form.password ? 0.6 : 1,
+          }}
+        >
+          {loading ? 'Entrando...' : 'Entrar'}
+        </button>
+      </form>
+    </div>
+  )
+}
+
 function scoreColor(v) {
   if (v == null) return 'var(--fg-3)'
   if (v >= 4) return 'var(--score-5)'
@@ -89,6 +207,8 @@ function SavedReportsList({ reports, onLoad, activeId }) {
 }
 
 export default function App() {
+  const [authLoading, setAuthLoading] = useState(true)
+  const [authUser, setAuthUser] = useState(null)
   const [tenantId, setTenantId] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState(null)
@@ -98,11 +218,28 @@ export default function App() {
   const [progress, setProgress] = useState(null)
 
   useEffect(() => {
+    fetch('/auth/session')
+      .then(r => r.ok ? r.json() : null)
+      .then(d => setAuthUser(d?.user || null))
+      .catch(() => setAuthUser(null))
+      .finally(() => setAuthLoading(false))
+  }, [])
+
+  useEffect(() => {
+    if (!authUser) return
     fetch('/assessment/results')
       .then(r => r.ok ? r.json() : [])
       .then(setSavedReports)
       .catch(() => {})
-  }, [])
+  }, [authUser])
+
+  async function logout() {
+    await fetch('/auth/logout', { method: 'POST' }).catch(() => {})
+    setAuthUser(null)
+    setResult(null)
+    setSavedReports([])
+    setScreen('overview')
+  }
 
   async function loadResult(id) {
     setLoading(true)
@@ -299,6 +436,17 @@ export default function App() {
     }
   }
 
+  if (authLoading) {
+    return (
+      <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--bg-app)' }}>
+        <div style={{ width: 36, height: 36, border: '3px solid var(--border-1)', borderTopColor: 'var(--brand-500)', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} />
+        <style>{`@keyframes spin { to { transform: rotate(360deg) } }`}</style>
+      </div>
+    )
+  }
+
+  if (!authUser) return <LoginScreen onLogin={setAuthUser} />
+
   return (
     <div style={{ display: 'flex', flexDirection: 'column', height: '100vh', overflow: 'hidden' }}>
       <AppHeader
@@ -307,6 +455,8 @@ export default function App() {
         setTenantId={setTenantId}
         onRun={runAssessment}
         loading={loading}
+        user={authUser}
+        onLogout={logout}
       />
       <div style={{ display: 'flex', flex: 1, overflow: 'hidden' }}>
         <SideNav active={screen} onSelect={setScreen} result={result} />
