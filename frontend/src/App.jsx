@@ -196,6 +196,7 @@ export default function App() {
 
   function renderScreen() {
     // Telas independentes de assessment — acessíveis sempre
+    if (screen === 'cadastro') return <CompanyRegistryScreen />
     if (screen === 'consent') return <ConsentScreen initialTenantId={tenantId} />
 
     if (loading) {
@@ -291,8 +292,6 @@ export default function App() {
         )
       case 'tenants':
         return <SavedReportsList reports={savedReports} onLoad={loadResult} activeId={result?.tenantId} />
-      case 'cadastro':
-        return <CompanyRegistryScreen />
       case 'consent':
         return <ConsentScreen initialTenantId={tenantId} />
       default:
