@@ -9,6 +9,7 @@ import CopilotReadinessScreen from './components/screens/CopilotReadinessScreen.
 import HistoryScreen from './components/screens/HistoryScreen.jsx'
 import ConsentScreen from './components/screens/ConsentScreen.jsx'
 import ZeroTrustScreen from './components/screens/ZeroTrustScreen.jsx'
+import CompanyRegistryScreen from './components/screens/CompanyRegistryScreen.jsx'
 
 const DOMAIN_IDS = ['baseline', 'entraId', 'sharePoint', 'governance', 'emailSecurity', 'teams']
 
@@ -290,6 +291,8 @@ export default function App() {
         )
       case 'tenants':
         return <SavedReportsList reports={savedReports} onLoad={loadResult} activeId={result?.tenantId} />
+      case 'cadastro':
+        return <CompanyRegistryScreen />
       case 'consent':
         return <ConsentScreen initialTenantId={tenantId} />
       default:

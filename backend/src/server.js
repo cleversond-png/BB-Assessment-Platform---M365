@@ -4,6 +4,7 @@ const path = require('path');
 const { validateConfig, server: serverConfig } = require('./config');
 const authRoutes = require('./routes/authRoutes');
 const assessmentRoutes = require('./routes/assessmentRoutes');
+const companyRoutes = require('./routes/companyRoutes');
 const { acquireTokenForTenant } = require('./auth/authService');
 const consentStore = require('./store/consentStore');
 const logger = require('./logger');
@@ -16,6 +17,7 @@ app.use(express.json());
 
 app.use('/auth', authRoutes);
 app.use('/assessment', assessmentRoutes);
+app.use('/companies', companyRoutes);
 
 app.get('/health', (_req, res) => res.json({ status: 'ok' }));
 
