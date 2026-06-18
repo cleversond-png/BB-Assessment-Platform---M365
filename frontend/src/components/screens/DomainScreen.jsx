@@ -1186,7 +1186,7 @@ function CollectorDetail({ id, data, weight, collectors = {} }) {
           : id === 'licensing'   ? <LicensingDetailContent data={data} />
           : id === 'users'       ? <UsersDetailContent data={data} />
           : id === 'appsChannel' ? <AppsChannelDetailContent data={data} />
-          : id === 'riskySignIns'? <RiskySignInsDetailContent data={data} />
+          : id === 'riskySignIns' && !data?.unavailable ? <RiskySignInsDetailContent data={data} />
           : id === 'storage'     ? <StorageDetailContent data={data} />
           : id === 'privileged'  ? <PrivilegedDetailContent data={data} />
           : id === 'files'       ? <FilesDetailContent data={data} />
