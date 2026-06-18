@@ -7,7 +7,7 @@ const DOMAIN_META = {
   sharePoint:    { label: 'SharePoint',        icon: 'folder-tree',    totalCollectors: 5 },
   governance:    { label: 'Governança',        icon: 'scale',          totalCollectors: 4 },
   emailSecurity: { label: 'Email Security',    icon: 'mail-check',     totalCollectors: 3 },
-  teams:         { label: 'Teams',             icon: 'message-square', totalCollectors: 2 },
+  teams:         { label: 'MS Teams',          icon: 'message-square', totalCollectors: 2 },
   iaReadiness:   { label: 'Copilot Readiness', icon: 'sparkles',       totalCollectors: 1 },
 }
 

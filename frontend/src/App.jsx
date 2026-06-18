@@ -343,7 +343,7 @@ export default function App() {
         { key: 'sharePoint',    label: 'SharePoint' },
         { key: 'governance',    label: 'Governança' },
         { key: 'emailSecurity', label: 'Email Security' },
-        { key: 'teams',         label: 'Teams' },
+        { key: 'teams',         label: 'MS Teams' },
       ]
       const doneCount = progress ? Object.values(progress.domains || {}).filter(v => v === 'done' || v === 'error').length : 0
       return (

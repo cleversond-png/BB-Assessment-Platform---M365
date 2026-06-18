@@ -7,7 +7,7 @@ const DOMAIN_META = {
   sharePoint:    { label: 'SharePoint',        icon: 'folder-tree',  subtitle: 'Coletores que avaliam permissões, ownership, conteúdo obsoleto, arquivos e armazenamento.' },
   governance:    { label: 'Governança',        icon: 'scale',        subtitle: 'Coletores que avaliam classificação de dados, auditoria, DLP e retenção.' },
   emailSecurity: { label: 'Email Security',    icon: 'mail-check',   subtitle: 'Coletores que verificam registros DNS de segurança de email (SPF, DMARC, DKIM).' },
-  teams:         { label: 'Teams',             icon: 'message-square', subtitle: 'Coletores que avaliam governança de acesso externo e apps do Microsoft Teams.' },
+  teams:         { label: 'MS Teams',          icon: 'message-square', subtitle: 'Coletores que avaliam governança de acesso externo e apps do Microsoft Teams.' },
   iaReadiness:   { label: 'Copilot Readiness', icon: 'sparkles',     subtitle: 'Síntese dos pré-requisitos técnicos para deployment seguro do Microsoft 365 Copilot.' },
 }
 

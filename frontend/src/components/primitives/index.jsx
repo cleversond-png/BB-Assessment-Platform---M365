@@ -2,7 +2,7 @@ import {
   TrendingUp, TrendingDown, GitCompareArrows, Share, ListChecks, ArrowRight, ArrowLeft,
   ChevronRight, ChevronDown, ChevronUp, ChevronsUpDown, AlertTriangle, Bell,
   LayoutDashboard, Building2, ShieldCheck, FolderTree, Scale, MailCheck, Sparkles,
-  History, ScrollText, UsersRound, KeyRound, Play, Download, ExternalLink,
+  History, ScrollText, UsersRound, KeyRound, Play, Download, ExternalLink, MessageSquare,
   Check, X, Zap, CalendarRange, Filter, Link, OctagonX, Copy,
 } from 'lucide-react'
 
@@ -14,6 +14,7 @@ export const ICONS = {
   'chevrons-up-down': ChevronsUpDown, 'alert-triangle': AlertTriangle, 'bell': Bell,
   'layout-dashboard': LayoutDashboard, 'building-2': Building2, 'shield-check': ShieldCheck,
   'folder-tree': FolderTree, 'scale': Scale, 'mail-check': MailCheck, 'sparkles': Sparkles,
+  'message-square': MessageSquare,
   'history': History, 'scroll-text': ScrollText, 'users-round': UsersRound, 'key-round': KeyRound,
   'play': Play, 'download': Download, 'external-link': ExternalLink,
   'check': Check, 'x': X, 'zap': Zap, 'calendar-range': CalendarRange,
