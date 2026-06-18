@@ -768,6 +768,45 @@ function UsersDetailContent({ data }) {
   )
 }
 
+function AppsChannelDetailContent({ data }) {
+  const s = data?.summary || {}
+  const eligible = s.eligibleLicenseUsers || s.totalUsers || 0
+  const installed = s.desktopUsersCount ?? ((s.windowsUsersCount ?? 0) + (s.macUsersCount ?? 0))
+  const webOnly = s.webOnlyUsersCount ?? 0
+  const notDetected = Math.max(0, eligible - installed)
+  const cats = [
+    { label: 'Desktop instalado', value: installed, total: eligible, color: '#16A34A', sub: `${s.windowsUsersCount ?? 0} Windows, ${s.macUsersCount ?? 0} Mac` },
+    { label: 'Somente web',       value: webOnly,   total: eligible, color: '#F59E0B', sub: 'usaram Office na web, sem Windows/Mac detectado' },
+    { label: 'Sem instalação detectada', value: notDetected, total: eligible, color: '#DC2626', sub: 'licenciados elegíveis sem uso desktop no relatório D30' },
+  ]
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+      {cats.map(cat => {
+        const pct = cat.total > 0 ? Math.round((cat.value / cat.total) * 100) : 0
+        return (
+          <div key={cat.label}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 5 }}>
+              <span className="t-sm" style={{ fontWeight: 500, color: 'var(--fg-1)' }}>{cat.label}</span>
+              <span className="t-xs" style={{ color: 'var(--fg-3)', flexShrink: 0, marginLeft: 8 }}>
+                {cat.value.toLocaleString('pt-BR')} / {cat.total.toLocaleString('pt-BR')} · {pct}%
+              </span>
+            </div>
+            <div style={{ height: 10, borderRadius: 5, background: 'var(--bg-subtle)', border: '1px solid var(--border-1)', overflow: 'hidden' }}>
+              <div style={{ width: `${pct}%`, height: '100%', background: cat.color, borderRadius: 5 }} />
+            </div>
+            <div className="t-xs" style={{ color: 'var(--fg-3)', marginTop: 3 }}>{cat.sub}</div>
+          </div>
+        )
+      })}
+
+      <div className="t-xs" style={{ color: 'var(--fg-3)', borderTop: '1px solid var(--border-1)', paddingTop: 10 }}>
+        Base: {eligible.toLocaleString('pt-BR')} usuário(s) com licença que dá direito à instalação. {s.channelNote || 'Verificar canal de atualização no Intune.'}
+      </div>
+    </div>
+  )
+}
+
 function PrivilegedDetailContent({ data }) {
   const users = data?.privilegedUsers || []
   const s = data?.summary || {}
@@ -1033,6 +1072,7 @@ function CollectorDetail({ id, data, weight }) {
         {id === 'usage'        ? <UsageDetailContent data={data} />
           : id === 'licensing'   ? <LicensingDetailContent data={data} />
           : id === 'users'       ? <UsersDetailContent data={data} />
+          : id === 'appsChannel' ? <AppsChannelDetailContent data={data} />
           : id === 'storage'     ? <StorageDetailContent data={data} />
           : id === 'privileged'  ? <PrivilegedDetailContent data={data} />
           : id === 'files'       ? <FilesDetailContent data={data} />
