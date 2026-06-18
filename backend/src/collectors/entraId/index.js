@@ -2,7 +2,6 @@ const { collectMfa } = require('./mfaCollector');
 const { collectConditionalAccess } = require('./caCollector');
 const { collectPrivileged } = require('./privilegedCollector');
 const { collectGuests } = require('./guestCollector');
-const { collectRiskyUsers } = require('./riskyUsersCollector');
 const { collectRiskySignIns } = require('./riskySignInsCollector');
 const { collectLegacyAuth } = require('./legacyAuthCollector');
 const { collectSspr } = require('./ssprCollector');
@@ -11,7 +10,7 @@ const { collectAppPermissions } = require('./appPermissionsCollector');
 const logger = require('../../logger');
 
 const COLLECTOR_WEIGHTS = {
-  mfa: 2, conditionalAccess: 2, privileged: 2, guests: 1, riskyUsers: 2, riskySignIns: 2,
+  mfa: 2, conditionalAccess: 2, privileged: 2, guests: 1, riskySignIns: 2,
   legacyAuth: 2, sspr: 1, breakGlass: 1, appPermissions: 2,
 };
 
@@ -23,7 +22,6 @@ async function runEntraIdAssessment(tenantId) {
     { name: 'conditionalAccess', fn: () => collectConditionalAccess(tenantId) },
     { name: 'privileged',       fn: () => collectPrivileged(tenantId) },
     { name: 'guests',           fn: () => collectGuests(tenantId) },
-    { name: 'riskyUsers',       fn: () => collectRiskyUsers(tenantId) },
     { name: 'riskySignIns',     fn: () => collectRiskySignIns(tenantId) },
     { name: 'legacyAuth',       fn: () => collectLegacyAuth(tenantId) },
     { name: 'sspr',             fn: () => collectSspr(tenantId) },

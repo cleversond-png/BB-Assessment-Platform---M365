@@ -557,31 +557,7 @@ const RULES = [
     effort: 'medium',
   },
 
-  // ── Risky Users ───────────────────────────────────────────────────────────
-  {
-    id: 'RISKY_USERS_HIGH',
-    check: (r) => {
-      const u = r.entraId?.collectors?.riskyUsers;
-      return u && !u.unavailable && (u.summary.highRisk > 0 || u.summary.confirmedCompromised > 0);
-    },
-    severity: 'critical',
-    category: 'Identidade',
-    finding: (r) => {
-      const s = r.entraId.collectors.riskyUsers.summary;
-      return `${s.highRisk + s.confirmedCompromised} usuário(s) de risco alto ou comprometidos detectados pelo Identity Protection.`;
-    },
-    recommendation: 'Investigar imediatamente as contas sinalizadas. Forçar redefinição de senha, revogar sessões e revisar atividade recente. Habilitar política de risco de login no Conditional Access.',
-    effort: 'high',
-  },
-  {
-    id: 'RISKY_USERS_P2_MISSING',
-    check: (r) => r.entraId?.collectors?.riskyUsers?.unavailable === true,
-    severity: 'medium',
-    category: 'Identidade',
-    finding: () => 'Entra ID P2 não licenciado — Identity Protection indisponível. Usuários comprometidos não são detectados automaticamente.',
-    recommendation: 'Avaliar licenciamento Entra ID P2 para habilitar Identity Protection, risk-based Conditional Access e SSPR com writeback.',
-    effort: 'medium',
-  },
+  // ── Entradas arriscadas ───────────────────────────────────────────────────
   {
     id: 'RISKY_SIGN_INS_DETECTED',
     check: (r) => {

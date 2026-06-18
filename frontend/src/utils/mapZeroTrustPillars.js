@@ -35,13 +35,13 @@ export function mapZeroTrustPillars(result) {
     },
     {
       id: 'identityProtection',
-      label: 'Identity Protection',
+      label: 'Entradas arriscadas',
       icon: 'alert-triangle',
-      collector: entra.riskyUsers,
+      collector: entra.riskySignIns,
       domainNav: 'entraId',
-      licenceBadge: 'Entra P2',
-      metric: c => c?.summary?.riskyUserCount != null
-        ? `${c.summary.riskyUserCount} usuários em risco` : null,
+      licenceBadge: 'Entra P1/P2',
+      metric: c => c?.summary?.total != null
+        ? `${c.summary.total} entradas arriscadas` : null,
     },
     {
       id: 'audit',

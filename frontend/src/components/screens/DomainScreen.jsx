@@ -30,8 +30,6 @@ const COLLECTOR_META = {
     description: 'Inventário de contas com roles administrativas elevadas. Excesso de Global Admins amplia a superfície de ataque; PIM mitiga com ativação just-in-time.' },
   guests:            { label: 'Guest Users',                       weight: 1, requires: 'User.Read.All',
     description: 'Convidados externos ativos — parceiros, fornecedores ou clientes com acesso a recursos internos. Guests inativos há mais de 90 dias são risco silencioso.' },
-  riskyUsers:        { label: 'Usuários arriscados (Identity Protection)', weight: 2, requires: 'Entra P2 + IdentityRiskyUser.Read.All',
-    description: 'Visão agregada de usuários em risco. Não é o mesmo relatório de Entradas arriscadas; este endpoint depende de Identity Protection/P2 para listar o estado consolidado do usuário.' },
   riskySignIns:      { label: 'Entradas arriscadas',               weight: 2, requires: 'Entra P1/P2 + IdentityRiskEvent.Read.All',
     description: 'Top 20 detecções de risco de sign-in nos últimos 7 dias: usuário, IP, localização, nível, estado e tipo de risco. Equivale ao relatório de Entradas arriscadas do Entra.' },
   // SharePoint
@@ -118,7 +116,6 @@ function collectorMetric(id, data) {
     switch (id) {
       case 'legacyAuth': return { value: 'Não verificado', sub: 'sign-in logs indisponíveis' }
       case 'breakGlass': return { value: 'Não configurado', sub: 'sem evidência coletada' }
-      case 'riskyUsers': return { value: 'Não disponível', sub: 'usuários agregados/P2' }
       case 'riskySignIns': return { value: 'Não configurado', sub: 'Identity Risk Events' }
       default: return { value: '—', sub: 'indisponível' }
     }
@@ -129,7 +126,6 @@ function collectorMetric(id, data) {
     case 'conditionalAccess': return { value: `${s.enabled ?? 0}`, sub: 'políticas ativas' }
     case 'privileged': return { value: `${s.globalAdminCount ?? '?'}`, sub: 'Global Admins' }
     case 'guests': return { value: `${s.total ?? '?'}`, sub: `${s.inactive ?? 0} inativos` }
-    case 'riskyUsers': return { value: `${(s.highRisk || 0) + (s.mediumRisk || 0)}`, sub: 'usuários em risco' }
     case 'riskySignIns': return { value: `${s.total ?? 0}`, sub: `${s.distinctUsers ?? 0} usuários / ${s.distinctIps ?? 0} IPs` }
     case 'licensing': return { value: `${s.totalLicenses ?? '?'}`, sub: `${s.totalAvailable ?? 0} disponíveis` }
     case 'users': return { value: `${s.total ?? '?'}`, sub: `${s.active ?? '?'} membros ativos` }
@@ -180,11 +176,6 @@ function collectorDetail(id, data, allCollectors = {}) {
         return 'Não foi possível verificar sign-ins por autenticação legada. Confirme AuditLog.Read.All e disponibilidade dos sign-in logs no tenant antes de considerar o risco como tratado.'
       case 'breakGlass':
         return 'Nenhuma evidência de conta break-glass configurada foi coletada. Trate como não configurado até validar ao menos 2 contas cloud-only de emergência excluídas das políticas de Conditional Access.'
-      case 'riskyUsers':
-        if ((allCollectors.riskySignIns?.summary?.total ?? 0) > 0) {
-          return `Entradas arriscadas foram detectadas no coletor específico de sign-ins (${allCollectors.riskySignIns.summary.total} evento(s) no Top ${allCollectors.riskySignIns.summary.cappedAt ?? 20}). Este coletor aqui mede outra coisa: a visão agregada de usuários arriscados, que requer IdentityRiskyUser.Read.All e licenciamento Identity Protection/P2.`
-        }
-        return 'A visão agregada de usuários arriscados não está disponível ou não foi licenciada/consentida para coleta. Isso não significa ausência de entradas arriscadas; confira o coletor Entradas arriscadas.'
       case 'riskySignIns':
         return 'As detecções de entradas arriscadas não estão disponíveis ou não foram consentidas. Confirme IdentityRiskEvent.Read.All e licenciamento Entra P1/P2 para coletar este relatório.'
       default:
@@ -202,7 +193,6 @@ function collectorDetail(id, data, allCollectors = {}) {
     case 'conditionalAccess': return s.enabled === 0 ? 'Nenhuma política de CA configurada.' : `${s.enabled} políticas ativas. MFA enforced: ${s.mfaEnforced ? 'sim' : 'não'}. Legacy auth bloqueado: ${s.blockLegacyAuth ? 'sim' : 'não'}.`
     case 'privileged': return `${s.globalAdminCount ?? '?'} Global Administrators. PIM em uso: ${s.pimEnabled ? 'sim' : 'não'}.`
     case 'guests': return `${s.total ?? '?'} contas guest. ${s.inactive ?? 0} inativas há >90 dias.`
-    case 'riskyUsers': return `${s.highRisk ?? 0} usuários de risco alto, ${s.mediumRisk ?? 0} médio. ${s.confirmedCompromised ?? 0} comprometidos.`
     case 'riskySignIns': return `${s.total ?? 0} entrada(s) arriscada(s) coletada(s) no Top ${s.cappedAt ?? 20} dos últimos ${s.periodDays ?? 7} dias envolvendo ${s.distinctUsers ?? 0} usuário(s) e ${s.distinctIps ?? 0} IP(s). Alto risco: ${s.highRisk ?? 0}; médio: ${s.mediumRisk ?? 0}.`
     case 'licensing': return `${s.totalLicenses ?? '?'} licenças totais (${s.paidLicenses ?? 0} pagas, ${s.freeLicenses ?? 0} gratuitas). ${s.totalAssigned ?? 0} atribuídas, ${s.totalAvailable ?? 0} disponíveis (${s.unusedRatioPercent ?? 0}% ociosas). Tier Entra ID: ${data.entraIdTier || '?'}.`
     case 'users': return `${s.total ?? '?'} usuários totais — ${s.members ?? 0} membros, ${s.guests ?? 0} guests. ${s.active ?? '?'} membros ativos. ${s.disabled ?? 0} contas desabilitadas (${s.disabledRatioPercent ?? 0}%). Proporção de guests: ${s.guestRatioPercent ?? 0}%.`
@@ -1284,7 +1274,7 @@ export default function DomainScreen({ domainId, result, onBack }) {
   const meta = DOMAIN_META[domainId] || { label: domainId, subtitle: '', icon: 'layout-dashboard' }
   const domain = result?.domains?.[domainId]
   const collectors = domain?.collectors || {}
-  const collectorIds = Object.keys(collectors)
+  const collectorIds = Object.keys(collectors).filter(id => id !== 'riskyUsers')
   const [selected, setSelected] = useState(collectorIds[0] || null)
 
   useEffect(() => {
