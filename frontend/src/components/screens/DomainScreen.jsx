@@ -32,6 +32,8 @@ const COLLECTOR_META = {
     description: 'Convidados externos ativos — parceiros, fornecedores ou clientes com acesso a recursos internos. Guests inativos há mais de 90 dias são risco silencioso.' },
   riskyUsers:        { label: 'Risky Users (Identity Protection)', weight: 2, requires: 'Entra P2 + IdentityRiskyUser.Read.All',
     description: 'Contas sinalizadas pelo Identity Protection como comprometidas ou em risco alto/médio, com base em análise comportamental e inteligência de ameaças da Microsoft.' },
+  riskySignIns:      { label: 'Entradas arriscadas',               weight: 2, requires: 'Entra P1/P2 + IdentityRiskEvent.Read.All',
+    description: 'Top 20 detecções de risco de sign-in nos últimos 7 dias: usuário, IP, localização, nível, estado e tipo de risco. Equivale ao relatório de Entradas arriscadas do Entra.' },
   // SharePoint
   permissions:       { label: 'Permissões / Sharing',   weight: 3, requires: 'Sites.Read.All',
     description: 'Configuração global de compartilhamento — se links anônimos estão habilitados e o nível de abertura do OneDrive. Links anônimos permitem acesso sem autenticação.' },
@@ -117,6 +119,7 @@ function collectorMetric(id, data) {
       case 'legacyAuth': return { value: 'Não verificado', sub: 'sign-in logs indisponíveis' }
       case 'breakGlass': return { value: 'Não configurado', sub: 'sem evidência coletada' }
       case 'riskyUsers': return { value: 'Não configurado', sub: 'Identity Protection/P2' }
+      case 'riskySignIns': return { value: 'Não configurado', sub: 'Identity Risk Events' }
       default: return { value: '—', sub: 'indisponível' }
     }
   }
@@ -127,6 +130,7 @@ function collectorMetric(id, data) {
     case 'privileged': return { value: `${s.globalAdminCount ?? '?'}`, sub: 'Global Admins' }
     case 'guests': return { value: `${s.total ?? '?'}`, sub: `${s.inactive ?? 0} inativos` }
     case 'riskyUsers': return { value: `${(s.highRisk || 0) + (s.mediumRisk || 0)}`, sub: 'usuários em risco' }
+    case 'riskySignIns': return { value: `${s.total ?? 0}`, sub: `${s.distinctUsers ?? 0} usuários / ${s.distinctIps ?? 0} IPs` }
     case 'licensing': return { value: `${s.totalLicenses ?? '?'}`, sub: `${s.totalAvailable ?? 0} disponíveis` }
     case 'users': return { value: `${s.total ?? '?'}`, sub: `${s.active ?? '?'} membros ativos` }
     case 'usage': {
@@ -178,6 +182,8 @@ function collectorDetail(id, data) {
         return 'Nenhuma evidência de conta break-glass configurada foi coletada. Trate como não configurado até validar ao menos 2 contas cloud-only de emergência excluídas das políticas de Conditional Access.'
       case 'riskyUsers':
         return 'Identity Protection não está disponível ou não foi licenciado/consentido para coleta. Trate como não configurado para readiness de Copilot, pois o tenant não demonstrou visibilidade de usuários em risco.'
+      case 'riskySignIns':
+        return 'As detecções de entradas arriscadas não estão disponíveis ou não foram consentidas. Confirme IdentityRiskEvent.Read.All e licenciamento Entra P1/P2 para coletar este relatório.'
       default:
         return 'Recurso indisponível — verifique a licença ou a permissão necessária.'
     }
@@ -194,6 +200,7 @@ function collectorDetail(id, data) {
     case 'privileged': return `${s.globalAdminCount ?? '?'} Global Administrators. PIM em uso: ${s.pimEnabled ? 'sim' : 'não'}.`
     case 'guests': return `${s.total ?? '?'} contas guest. ${s.inactive ?? 0} inativas há >90 dias.`
     case 'riskyUsers': return `${s.highRisk ?? 0} usuários de risco alto, ${s.mediumRisk ?? 0} médio. ${s.confirmedCompromised ?? 0} comprometidos.`
+    case 'riskySignIns': return `${s.total ?? 0} entrada(s) arriscada(s) nos últimos ${s.periodDays ?? 7} dias envolvendo ${s.distinctUsers ?? 0} usuário(s) e ${s.distinctIps ?? 0} IP(s). Alto risco: ${s.highRisk ?? 0}; médio: ${s.mediumRisk ?? 0}.`
     case 'licensing': return `${s.totalLicenses ?? '?'} licenças totais (${s.paidLicenses ?? 0} pagas, ${s.freeLicenses ?? 0} gratuitas). ${s.totalAssigned ?? 0} atribuídas, ${s.totalAvailable ?? 0} disponíveis (${s.unusedRatioPercent ?? 0}% ociosas). Tier Entra ID: ${data.entraIdTier || '?'}.`
     case 'users': return `${s.total ?? '?'} usuários totais — ${s.members ?? 0} membros, ${s.guests ?? 0} guests. ${s.active ?? '?'} membros ativos. ${s.disabled ?? 0} contas desabilitadas (${s.disabledRatioPercent ?? 0}%). Proporção de guests: ${s.guestRatioPercent ?? 0}%.`
     case 'usage': {
@@ -807,6 +814,116 @@ function AppsChannelDetailContent({ data }) {
   )
 }
 
+function formatDateTimeBR(value) {
+  if (!value) return '—'
+  const d = new Date(value)
+  if (Number.isNaN(d.getTime())) return '—'
+  return d.toLocaleString('pt-BR', {
+    day: '2-digit',
+    month: '2-digit',
+    year: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+  })
+}
+
+function riskLevelLabel(level) {
+  const labels = { high: 'Alto', medium: 'Médio', low: 'Baixo', hidden: 'Oculto', none: 'Nenhum' }
+  return labels[level] || level || '—'
+}
+
+function riskStateLabel(state) {
+  const labels = {
+    atRisk: 'Em risco',
+    confirmedCompromised: 'Comprometido',
+    confirmedSafe: 'Seguro',
+    remediated: 'Remediado',
+    dismissed: 'Descartado',
+  }
+  return labels[state] || state || '—'
+}
+
+function riskLevelColor(level) {
+  if (level === 'high') return 'var(--err-fg)'
+  if (level === 'medium') return 'var(--warn-fg)'
+  if (level === 'low') return 'var(--brand-600)'
+  return 'var(--fg-3)'
+}
+
+function RiskySignInsDetailContent({ data }) {
+  const s = data?.summary || {}
+  const rows = data?.riskySignIns || []
+
+  if (rows.length === 0) {
+    return (
+      <div style={{ padding: '12px 16px', borderRadius: 8, background: 'var(--ok-bg)', border: '1px solid var(--ok-bd)' }}>
+        <span style={{ color: 'var(--ok-fg)', fontWeight: 600, fontSize: 14 }}>
+          Nenhuma entrada arriscada detectada nos últimos {s.periodDays ?? 7} dias.
+        </span>
+      </div>
+    )
+  }
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 10 }}>
+        {[
+          { label: 'Eventos', value: s.total ?? 0, color: (s.total ?? 0) > 0 ? 'var(--score-0)' : 'var(--score-5)' },
+          { label: 'Alto risco', value: s.highRisk ?? 0, color: (s.highRisk ?? 0) > 0 ? 'var(--score-0)' : 'var(--fg-2)' },
+          { label: 'Usuários', value: s.distinctUsers ?? 0, color: 'var(--fg-1)' },
+          { label: 'IPs', value: s.distinctIps ?? 0, color: 'var(--fg-1)' },
+        ].map(m => (
+          <div key={m.label} style={{ padding: '10px 12px', borderRadius: 8, background: 'var(--bg-subtle)', border: '1px solid var(--border-1)' }}>
+            <div className="t-2xs" style={{ marginBottom: 4 }}>{m.label}</div>
+            <div style={{ fontWeight: 700, fontSize: 22, lineHeight: 1, color: m.color }}>{m.value}</div>
+          </div>
+        ))}
+      </div>
+
+      <div>
+        <div className="t-2xs" style={{ marginBottom: 8 }}>Top {rows.length} entradas arriscadas</div>
+        <div style={{ border: '1px solid var(--border-1)', borderRadius: 8, overflow: 'hidden' }}>
+          <div style={{
+            display: 'grid',
+            gridTemplateColumns: '112px minmax(160px, 1.2fr) 112px minmax(130px, 1fr) 92px minmax(120px, 1fr)',
+            gap: 10,
+            padding: '8px 10px',
+            background: 'var(--bg-subtle)',
+            borderBottom: '1px solid var(--border-1)',
+          }}>
+            {['Data', 'Usuário', 'IP', 'Localização', 'Risco', 'Tipo'].map(h => <span key={h} className="t-2xs">{h}</span>)}
+          </div>
+          {rows.map((row, i) => (
+            <div key={row.id || i} style={{
+              display: 'grid',
+              gridTemplateColumns: '112px minmax(160px, 1.2fr) 112px minmax(130px, 1fr) 92px minmax(120px, 1fr)',
+              gap: 10,
+              alignItems: 'center',
+              padding: '9px 10px',
+              borderTop: i === 0 ? 'none' : '1px solid var(--border-1)',
+            }}>
+              <span className="t-xs" style={{ color: 'var(--fg-2)', whiteSpace: 'nowrap' }}>{formatDateTimeBR(row.activityDateTime || row.detectedDateTime)}</span>
+              <div style={{ minWidth: 0 }}>
+                <div className="t-sm" style={{ fontWeight: 500, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                  {row.userDisplayName || row.userPrincipalName || '—'}
+                </div>
+                {row.userPrincipalName && <div className="t-xs" style={{ color: 'var(--fg-3)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{row.userPrincipalName}</div>}
+              </div>
+              <span translate="no" className="t-xs" style={{ color: 'var(--fg-2)', whiteSpace: 'nowrap' }}>{row.ipAddress || '—'}</span>
+              <span className="t-xs" style={{ color: 'var(--fg-2)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{row.location || '—'}</span>
+              <div style={{ minWidth: 0 }}>
+                <div className="t-xs" style={{ fontWeight: 700, color: riskLevelColor(row.riskLevel) }}>{riskLevelLabel(row.riskLevel)}</div>
+                <div className="t-xs" style={{ color: 'var(--fg-3)' }}>{riskStateLabel(row.riskState)}</div>
+              </div>
+              <span className="t-xs" style={{ color: 'var(--fg-2)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{row.riskEventType || row.riskDetail || '—'}</span>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  )
+}
+
 function PrivilegedDetailContent({ data }) {
   const users = data?.privilegedUsers || []
   const s = data?.summary || {}
@@ -1073,6 +1190,7 @@ function CollectorDetail({ id, data, weight }) {
           : id === 'licensing'   ? <LicensingDetailContent data={data} />
           : id === 'users'       ? <UsersDetailContent data={data} />
           : id === 'appsChannel' ? <AppsChannelDetailContent data={data} />
+          : id === 'riskySignIns'? <RiskySignInsDetailContent data={data} />
           : id === 'storage'     ? <StorageDetailContent data={data} />
           : id === 'privileged'  ? <PrivilegedDetailContent data={data} />
           : id === 'files'       ? <FilesDetailContent data={data} />

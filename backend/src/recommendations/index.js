@@ -582,6 +582,21 @@ const RULES = [
     recommendation: 'Avaliar licenciamento Entra ID P2 para habilitar Identity Protection, risk-based Conditional Access e SSPR com writeback.',
     effort: 'medium',
   },
+  {
+    id: 'RISKY_SIGN_INS_DETECTED',
+    check: (r) => {
+      const s = r.entraId?.collectors?.riskySignIns;
+      return s && !s.unavailable && ((s.summary?.highRisk ?? 0) > 0 || (s.summary?.confirmedCompromised ?? 0) > 0 || (s.summary?.total ?? 0) >= 5);
+    },
+    severity: 'critical',
+    category: 'Identidade',
+    finding: (r) => {
+      const s = r.entraId.collectors.riskySignIns.summary;
+      return `${s.total} entrada(s) arriscada(s) nos últimos ${s.periodDays} dias envolvendo ${s.distinctUsers} usuário(s) e ${s.distinctIps} IP(s). Alto risco: ${s.highRisk}.`;
+    },
+    recommendation: 'Investigar as entradas arriscadas Top 20: validar usuário, IP e localização; revogar sessões suspeitas; exigir troca de senha quando aplicável; e habilitar Conditional Access baseado em risco.',
+    effort: 'high',
+  },
 
   // ── Email Security ────────────────────────────────────────────────────────
   {

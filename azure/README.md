@@ -7,7 +7,7 @@ Configuração da App Registration multi-tenant que sustenta a plataforma.
 - `app-registration-permissions.json` — manifest no formato `requiredResourceAccess` com todas as permissões Microsoft Graph application que o app precisa
 - `update-permissions.sh` — script Azure CLI para aplicar o manifest
 
-## Permissões (17, todas application/Role)
+## Permissões (18, todas application/Role)
 
 | ID | Permissão | Justificativa |
 |----|-----------|---------------|
@@ -17,6 +17,7 @@ Configuração da App Registration multi-tenant que sustenta a plataforma.
 | `38d9df27-…` | UserAuthenticationMethod.Read.All | mfa (requer Entra P1) |
 | `246dd0d5-…` | Policy.Read.All | conditionalAccess (requer Entra P1) |
 | `483bed4a-…` | RoleManagement.Read.Directory | privileged (+ PIM com P2) |
+| `6e472fd1-…` | IdentityRiskEvent.Read.All | riskySignIns (requer Entra P1/P2) |
 | `dc5007c0-…` | IdentityRiskyUser.Read.All | riskyUsers (requer Entra P2) |
 | `332a536c-…` | Sites.Read.All | permissions, ownership, oversharing |
 | `01d4889c-…` | Files.Read.All | files (stub) |
