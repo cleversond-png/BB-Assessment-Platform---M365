@@ -30,8 +30,8 @@ const COLLECTOR_META = {
     description: 'Inventário de contas com roles administrativas elevadas. Excesso de Global Admins amplia a superfície de ataque; PIM mitiga com ativação just-in-time.' },
   guests:            { label: 'Guest Users',                       weight: 1, requires: 'User.Read.All',
     description: 'Convidados externos ativos — parceiros, fornecedores ou clientes com acesso a recursos internos. Guests inativos há mais de 90 dias são risco silencioso.' },
-  riskyUsers:        { label: 'Risky Users (Identity Protection)', weight: 2, requires: 'Entra P2 + IdentityRiskyUser.Read.All',
-    description: 'Contas sinalizadas pelo Identity Protection como comprometidas ou em risco alto/médio, com base em análise comportamental e inteligência de ameaças da Microsoft.' },
+  riskyUsers:        { label: 'Usuários arriscados (Identity Protection)', weight: 2, requires: 'Entra P2 + IdentityRiskyUser.Read.All',
+    description: 'Visão agregada de usuários em risco. Não é o mesmo relatório de Entradas arriscadas; este endpoint depende de Identity Protection/P2 para listar o estado consolidado do usuário.' },
   riskySignIns:      { label: 'Entradas arriscadas',               weight: 2, requires: 'Entra P1/P2 + IdentityRiskEvent.Read.All',
     description: 'Top 20 detecções de risco de sign-in nos últimos 7 dias: usuário, IP, localização, nível, estado e tipo de risco. Equivale ao relatório de Entradas arriscadas do Entra.' },
   // SharePoint
@@ -118,7 +118,7 @@ function collectorMetric(id, data) {
     switch (id) {
       case 'legacyAuth': return { value: 'Não verificado', sub: 'sign-in logs indisponíveis' }
       case 'breakGlass': return { value: 'Não configurado', sub: 'sem evidência coletada' }
-      case 'riskyUsers': return { value: 'Não configurado', sub: 'Identity Protection/P2' }
+      case 'riskyUsers': return { value: 'Não disponível', sub: 'usuários agregados/P2' }
       case 'riskySignIns': return { value: 'Não configurado', sub: 'Identity Risk Events' }
       default: return { value: '—', sub: 'indisponível' }
     }
@@ -172,7 +172,7 @@ function collectorMetric(id, data) {
   }
 }
 
-function collectorDetail(id, data) {
+function collectorDetail(id, data, allCollectors = {}) {
   if (!data) return 'Recurso indisponível — verifique a licença ou a permissão necessária.'
   if (data.unavailable) {
     switch (id) {
@@ -181,7 +181,10 @@ function collectorDetail(id, data) {
       case 'breakGlass':
         return 'Nenhuma evidência de conta break-glass configurada foi coletada. Trate como não configurado até validar ao menos 2 contas cloud-only de emergência excluídas das políticas de Conditional Access.'
       case 'riskyUsers':
-        return 'Identity Protection não está disponível ou não foi licenciado/consentido para coleta. Trate como não configurado para readiness de Copilot, pois o tenant não demonstrou visibilidade de usuários em risco.'
+        if ((allCollectors.riskySignIns?.summary?.total ?? 0) > 0) {
+          return `Entradas arriscadas foram detectadas no coletor específico de sign-ins (${allCollectors.riskySignIns.summary.total} evento(s) no Top ${allCollectors.riskySignIns.summary.cappedAt ?? 20}). Este coletor aqui mede outra coisa: a visão agregada de usuários arriscados, que requer IdentityRiskyUser.Read.All e licenciamento Identity Protection/P2.`
+        }
+        return 'A visão agregada de usuários arriscados não está disponível ou não foi licenciada/consentida para coleta. Isso não significa ausência de entradas arriscadas; confira o coletor Entradas arriscadas.'
       case 'riskySignIns':
         return 'As detecções de entradas arriscadas não estão disponíveis ou não foram consentidas. Confirme IdentityRiskEvent.Read.All e licenciamento Entra P1/P2 para coletar este relatório.'
       default:
@@ -1163,11 +1166,11 @@ function ScoreChip({ value, compact, informational = false }) {
   )
 }
 
-function CollectorDetail({ id, data, weight }) {
+function CollectorDetail({ id, data, weight, collectors = {} }) {
   if (!id) return <div className="t-sm" style={{ color: 'var(--fg-3)' }}>Selecione um coletor</div>
   const meta = COLLECTOR_META[id] || { label: id, requires: '—' }
   const metric = collectorMetric(id, data)
-  const detail = collectorDetail(id, data)
+  const detail = collectorDetail(id, data, collectors)
   const status = collectorStatus(id, data)
   const informational = isInformationalCollector(id, data)
   const scoreValue = displayScore(data)
@@ -1356,7 +1359,7 @@ export default function DomainScreen({ domainId, result, onBack }) {
             })}
           </Card>
           <Card padding={24}>
-            <CollectorDetail id={selected} data={selected ? collectors[selected] : null} weight={selected ? (COLLECTOR_META[selected]?.weight) : null} />
+            <CollectorDetail id={selected} data={selected ? collectors[selected] : null} weight={selected ? (COLLECTOR_META[selected]?.weight) : null} collectors={collectors} />
           </Card>
         </div>
       )}
