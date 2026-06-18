@@ -2,6 +2,7 @@ const { graphGet } = require('../../graph/graphClient');
 const logger = require('../../logger');
 
 const PERIOD_DAYS = 7;
+const TOP_RISKY_SIGN_INS = 20;
 
 function formatLocation(location = {}) {
   return [location.city, location.state, location.countryOrRegion]
@@ -26,8 +27,8 @@ async function collectRiskySignIns(tenantId) {
     data = await graphGet(tenantId, '/identityProtection/riskDetections', {
       $filter: `(riskState eq 'atRisk' or riskState eq 'confirmedCompromised') and activityDateTime ge ${since}`,
       $select: 'id,requestId,correlationId,riskEventType,riskState,riskLevel,riskDetail,detectionTimingType,activity,ipAddress,location,activityDateTime,detectedDateTime,userDisplayName,userPrincipalName',
-      $top: 500,
-    });
+      $top: TOP_RISKY_SIGN_INS,
+    }, { timeout: 10000, retries: 1 });
   } catch (err) {
     const status = err.response?.status || err.statusCode;
     if (status === 403 || status === 404) {
@@ -109,6 +110,7 @@ async function collectRiskySignIns(tenantId) {
       distinctIps: uniqueIps.size,
       periodDays: PERIOD_DAYS,
       topCount: topDetections.length,
+      cappedAt: TOP_RISKY_SIGN_INS,
     },
     riskySignIns: topDetections,
   };

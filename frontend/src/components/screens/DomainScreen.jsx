@@ -200,7 +200,7 @@ function collectorDetail(id, data) {
     case 'privileged': return `${s.globalAdminCount ?? '?'} Global Administrators. PIM em uso: ${s.pimEnabled ? 'sim' : 'não'}.`
     case 'guests': return `${s.total ?? '?'} contas guest. ${s.inactive ?? 0} inativas há >90 dias.`
     case 'riskyUsers': return `${s.highRisk ?? 0} usuários de risco alto, ${s.mediumRisk ?? 0} médio. ${s.confirmedCompromised ?? 0} comprometidos.`
-    case 'riskySignIns': return `${s.total ?? 0} entrada(s) arriscada(s) nos últimos ${s.periodDays ?? 7} dias envolvendo ${s.distinctUsers ?? 0} usuário(s) e ${s.distinctIps ?? 0} IP(s). Alto risco: ${s.highRisk ?? 0}; médio: ${s.mediumRisk ?? 0}.`
+    case 'riskySignIns': return `${s.total ?? 0} entrada(s) arriscada(s) coletada(s) no Top ${s.cappedAt ?? 20} dos últimos ${s.periodDays ?? 7} dias envolvendo ${s.distinctUsers ?? 0} usuário(s) e ${s.distinctIps ?? 0} IP(s). Alto risco: ${s.highRisk ?? 0}; médio: ${s.mediumRisk ?? 0}.`
     case 'licensing': return `${s.totalLicenses ?? '?'} licenças totais (${s.paidLicenses ?? 0} pagas, ${s.freeLicenses ?? 0} gratuitas). ${s.totalAssigned ?? 0} atribuídas, ${s.totalAvailable ?? 0} disponíveis (${s.unusedRatioPercent ?? 0}% ociosas). Tier Entra ID: ${data.entraIdTier || '?'}.`
     case 'users': return `${s.total ?? '?'} usuários totais — ${s.members ?? 0} membros, ${s.guests ?? 0} guests. ${s.active ?? '?'} membros ativos. ${s.disabled ?? 0} contas desabilitadas (${s.disabledRatioPercent ?? 0}%). Proporção de guests: ${s.guestRatioPercent ?? 0}%.`
     case 'usage': {
@@ -919,6 +919,9 @@ function RiskySignInsDetailContent({ data }) {
             </div>
           ))}
         </div>
+      </div>
+      <div className="t-xs" style={{ color: 'var(--fg-3)' }}>
+        Coleta limitada ao Top {s.cappedAt ?? 20} para manter o assessment rápido.
       </div>
     </div>
   )
