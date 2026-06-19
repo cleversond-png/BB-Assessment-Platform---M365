@@ -76,6 +76,7 @@ export default function SideNav({ active, onSelect, result }) {
       group: 'Configuração',
       items: [
         { id: 'cadastro', icon: 'building-2', label: 'Cadastro' },
+        { id: 'environment', icon: 'cloud', label: 'Ambiente' },
         { id: 'tenants', icon: 'users-round', label: 'Tenants' },
         { id: 'consent', icon: 'key-round', label: 'Consent' },
       ],
