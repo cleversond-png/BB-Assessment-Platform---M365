@@ -10,6 +10,8 @@ const COST_API_VERSION = '2023-03-01';
 
 const subscriptionId = process.env.AZURE_SUBSCRIPTION_ID || process.env.AZURE_ENV_SUBSCRIPTION_ID;
 const resourceGroupName = process.env.AZURE_ENV_RESOURCE_GROUP || DEFAULT_RESOURCE_GROUP;
+const currentSiteName = process.env.WEBSITE_SITE_NAME || null;
+const allowSelfStop = process.env.AZURE_ENV_ALLOW_SELF_STOP === 'true';
 
 function requireAzureScope() {
   if (!subscriptionId) {
@@ -81,6 +83,8 @@ function isStartStopCapable(resource) {
 
 function normalizeResource(resource, stateById = {}) {
   const state = stateById[resource.id] || resource.properties?.state || null;
+  const selfHosted = Boolean(currentSiteName && resource.name === currentSiteName && isStartStopCapable(resource));
+  const blockedSelfStop = selfHosted && !allowSelfStop;
   return {
     id: resource.id,
     name: resource.name,
@@ -88,9 +92,10 @@ function normalizeResource(resource, stateById = {}) {
     kind: resource.kind || null,
     location: resource.location,
     state,
+    selfHosted,
     startStopCapable: isStartStopCapable(resource),
-    canStart: isStartStopCapable(resource) && state !== 'Running',
-    canStop: isStartStopCapable(resource) && state === 'Running',
+    canStart: isStartStopCapable(resource) && state !== 'Running' && !blockedSelfStop,
+    canStop: isStartStopCapable(resource) && state === 'Running' && !blockedSelfStop,
   };
 }
 
@@ -183,6 +188,9 @@ async function controlWebApp(resourceName, action) {
     resource.name === resourceName && resource.type === 'Microsoft.Web/sites'
   ));
   if (!target) throw new Error('Start/stop is only allowed for Web Apps in the configured resource group');
+  if (target.selfHosted && action === 'stop' && !allowSelfStop) {
+    throw new Error('Self-stop is blocked for the portal host. Set AZURE_ENV_ALLOW_SELF_STOP=true only if another control plane can start it again.');
+  }
 
   const path = `${target.id}/${action}?api-version=${WEB_API_VERSION}`;
   await armRequest('POST', path);

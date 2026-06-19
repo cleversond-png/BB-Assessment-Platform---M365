@@ -57,6 +57,8 @@ function ResourceRow({ resource, busy, onAction }) {
               Parar
             </Btn>
           </>
+        ) : resource.selfHosted ? (
+          <span className="t-xs" style={{ color: 'var(--fg-3)' }}>Host atual</span>
         ) : (
           <span className="t-xs" style={{ color: 'var(--fg-3)' }}>Sem start/stop</span>
         )}
