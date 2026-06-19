@@ -6,12 +6,26 @@ const DEFAULT_RESOURCE_GROUP = 'EDUGEST-ZERO_TRUST';
 const ARM_RESOURCE = 'https://management.azure.com/';
 const ARM_API_VERSION = '2021-04-01';
 const WEB_API_VERSION = '2022-03-01';
+const CONTAINER_APP_API_VERSION = '2023-05-01';
+const POSTGRES_API_VERSION = '2022-12-01';
 const COST_API_VERSION = '2023-03-01';
 
 const subscriptionId = process.env.AZURE_SUBSCRIPTION_ID || process.env.AZURE_ENV_SUBSCRIPTION_ID;
-const resourceGroupName = process.env.AZURE_ENV_RESOURCE_GROUP || DEFAULT_RESOURCE_GROUP;
 const currentSiteName = process.env.WEBSITE_SITE_NAME || null;
 const allowSelfStop = process.env.AZURE_ENV_ALLOW_SELF_STOP === 'true';
+
+const ENVIRONMENTS = [
+  {
+    id: 'assessment',
+    label: 'EDUGEST - ASSESSMENT',
+    resourceGroupName: process.env.AZURE_ENV_RESOURCE_GROUP || DEFAULT_RESOURCE_GROUP,
+  },
+  {
+    id: 'super-admin',
+    label: 'EDUGEST - SUPER ADMIN',
+    resourceGroupName: process.env.AZURE_SUPER_ADMIN_RESOURCE_GROUP || 'rg-edugest-prod-eus2',
+  },
+];
 
 function requireAzureScope() {
   if (!subscriptionId) {
@@ -78,13 +92,20 @@ async function armRequest(method, path, body) {
 }
 
 function isStartStopCapable(resource) {
-  return resource.type?.toLowerCase() === 'microsoft.web/sites';
+  return [
+    'microsoft.web/sites',
+    'microsoft.app/containerapps',
+    'microsoft.dbforpostgresql/flexibleservers',
+  ].includes(resource.type?.toLowerCase());
 }
 
 function normalizeResource(resource, stateById = {}) {
   const state = stateById[resource.id] || resource.properties?.state || null;
-  const selfHosted = Boolean(currentSiteName && resource.name === currentSiteName && isStartStopCapable(resource));
+  const type = resource.type?.toLowerCase();
+  const selfHosted = Boolean(currentSiteName && resource.name === currentSiteName && type === 'microsoft.web/sites');
   const blockedSelfStop = selfHosted && !allowSelfStop;
+  const running = state === 'Running' || state === 'Ready';
+  const stopped = state === 'Stopped' || state === 'Disabled';
   return {
     id: resource.id,
     name: resource.name,
@@ -94,20 +115,46 @@ function normalizeResource(resource, stateById = {}) {
     state,
     selfHosted,
     startStopCapable: isStartStopCapable(resource),
-    canStart: isStartStopCapable(resource) && state !== 'Running' && !blockedSelfStop,
-    canStop: isStartStopCapable(resource) && state === 'Running' && !blockedSelfStop,
+    canStart: isStartStopCapable(resource) && stopped && !blockedSelfStop,
+    canStop: isStartStopCapable(resource) && running && !blockedSelfStop,
   };
 }
 
-async function listEnvironmentResources() {
+function resolveEnvironment(environmentId = 'assessment') {
+  const environment = ENVIRONMENTS.find((item) => item.id === environmentId);
+  if (!environment) throw new Error('Unknown environment');
+  return environment;
+}
+
+function resourceApiVersion(resource) {
+  const type = resource.type?.toLowerCase();
+  if (type === 'microsoft.web/sites') return WEB_API_VERSION;
+  if (type === 'microsoft.app/containerapps') return CONTAINER_APP_API_VERSION;
+  if (type === 'microsoft.dbforpostgresql/flexibleservers') return POSTGRES_API_VERSION;
+  return ARM_API_VERSION;
+}
+
+function readResourceState(detail) {
+  const type = detail.type?.toLowerCase();
+  if (type === 'microsoft.web/sites') return detail.properties?.state || null;
+  if (type === 'microsoft.app/containerapps') {
+    return detail.properties?.runningStatus || detail.properties?.provisioningState || null;
+  }
+  if (type === 'microsoft.dbforpostgresql/flexibleservers') return detail.properties?.state || null;
+  return detail.properties?.state || null;
+}
+
+async function listEnvironmentResources(environmentId = 'assessment') {
+  const environment = resolveEnvironment(environmentId);
+  const { resourceGroupName } = environment;
   const listPath = `/subscriptions/${subscriptionId}/resourceGroups/${resourceGroupName}/resources?api-version=${ARM_API_VERSION}`;
   const resources = (await armRequest('GET', listPath)).value || [];
-  const webResources = resources.filter(isStartStopCapable);
-  const statePairs = await Promise.all(webResources.map(async (resource) => {
+  const controllableResources = resources.filter(isStartStopCapable);
+  const statePairs = await Promise.all(controllableResources.map(async (resource) => {
     try {
-      const path = `${resource.id}?api-version=${WEB_API_VERSION}`;
+      const path = `${resource.id}?api-version=${resourceApiVersion(resource)}`;
       const detail = await armRequest('GET', path);
-      return [resource.id, detail.properties?.state || null];
+      return [resource.id, readResourceState(detail)];
     } catch (err) {
       logger.warn({ event: 'environment_resource_state_failed', resourceId: resource.id, error: err.message });
       return [resource.id, null];
@@ -116,6 +163,8 @@ async function listEnvironmentResources() {
   const stateById = Object.fromEntries(statePairs);
 
   return {
+    id: environment.id,
+    label: environment.label,
     subscriptionId,
     resourceGroupName,
     resources: resources.map((resource) => normalizeResource(resource, stateById)),
@@ -146,7 +195,8 @@ function parseCostRows(data) {
   };
 }
 
-async function getEnvironmentBilling() {
+async function getEnvironmentBilling(environmentId = 'assessment') {
+  const environment = resolveEnvironment(environmentId);
   const range = currentMonthRange();
   const path = `/subscriptions/${subscriptionId}/providers/Microsoft.CostManagement/query?api-version=${COST_API_VERSION}`;
   const body = {
@@ -162,7 +212,7 @@ async function getEnvironmentBilling() {
         dimensions: {
           name: 'ResourceGroupName',
           operator: 'In',
-          values: [resourceGroupName],
+          values: [environment.resourceGroupName],
         },
       },
       grouping: [
@@ -174,32 +224,59 @@ async function getEnvironmentBilling() {
 
   const data = await armRequest('POST', path, body);
   return {
+    id: environment.id,
+    label: environment.label,
     subscriptionId,
-    resourceGroupName,
+    resourceGroupName: environment.resourceGroupName,
     period: range,
     ...parseCostRows(data),
   };
 }
 
-async function controlWebApp(resourceName, action) {
+async function getEnvironment(environmentId) {
+  const [inventory, billing] = await Promise.all([
+    listEnvironmentResources(environmentId),
+    getEnvironmentBilling(environmentId).catch((err) => ({ unavailable: true, error: err.message })),
+  ]);
+  return { ...inventory, billing };
+}
+
+async function listEnvironments() {
+  const environments = await Promise.all(ENVIRONMENTS.map((environment) => getEnvironment(environment.id)));
+  return { subscriptionId, environments };
+}
+
+async function controlResource(environmentId, resourceName, action) {
   if (!['start', 'stop'].includes(action)) throw new Error('Invalid action');
-  const resources = await listEnvironmentResources();
+  const resources = await listEnvironmentResources(environmentId);
   const target = resources.resources.find((resource) => (
-    resource.name === resourceName && resource.type === 'Microsoft.Web/sites'
+    resource.name === resourceName && resource.startStopCapable
   ));
-  if (!target) throw new Error('Start/stop is only allowed for Web Apps in the configured resource group');
+  if (!target) throw new Error('Start/stop is only allowed for supported resources in the configured environment');
   if (target.selfHosted && action === 'stop' && !allowSelfStop) {
     throw new Error('Self-stop is blocked for the portal host. Set AZURE_ENV_ALLOW_SELF_STOP=true only if another control plane can start it again.');
   }
+  if ((action === 'start' && !target.canStart) || (action === 'stop' && !target.canStop)) {
+    throw new Error(`Resource ${target.name} cannot ${action} from current state ${target.state || 'unknown'}`);
+  }
 
-  const path = `${target.id}/${action}?api-version=${WEB_API_VERSION}`;
+  const path = `${target.id}/${action}?api-version=${resourceApiVersion(target)}`;
   await armRequest('POST', path);
-  logger.info({ event: 'environment_resource_action', resourceGroupName, resourceName, action });
-  return listEnvironmentResources();
+  logger.info({
+    event: 'environment_resource_action',
+    environmentId,
+    resourceGroupName: resources.resourceGroupName,
+    resourceName,
+    resourceType: target.type,
+    action,
+  });
+  return getEnvironment(environmentId);
 }
 
 module.exports = {
+  listEnvironments,
+  getEnvironment,
   listEnvironmentResources,
   getEnvironmentBilling,
-  controlWebApp,
+  controlResource,
 };

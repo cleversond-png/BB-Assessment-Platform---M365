@@ -1,8 +1,9 @@
 const express = require('express');
 const {
-  listEnvironmentResources,
+  listEnvironments,
+  getEnvironment,
   getEnvironmentBilling,
-  controlWebApp,
+  controlResource,
 } = require('../azure/environmentService');
 const logger = require('../logger');
 
@@ -15,27 +16,31 @@ function handleEnvironmentError(res, err, event) {
 
 router.get('/', async (_req, res) => {
   try {
-    const [inventory, billing] = await Promise.all([
-      listEnvironmentResources(),
-      getEnvironmentBilling().catch((err) => ({ unavailable: true, error: err.message })),
-    ]);
-    res.json({ ...inventory, billing });
+    res.json(await listEnvironments());
   } catch (err) {
     handleEnvironmentError(res, err, 'environment_fetch_failed');
   }
 });
 
-router.get('/billing', async (_req, res) => {
+router.get('/:environmentId', async (req, res) => {
   try {
-    res.json(await getEnvironmentBilling());
+    res.json(await getEnvironment(req.params.environmentId));
+  } catch (err) {
+    handleEnvironmentError(res, err, 'environment_fetch_failed');
+  }
+});
+
+router.get('/:environmentId/billing', async (req, res) => {
+  try {
+    res.json(await getEnvironmentBilling(req.params.environmentId));
   } catch (err) {
     handleEnvironmentError(res, err, 'environment_billing_failed');
   }
 });
 
-router.post('/resources/:name/:action', async (req, res) => {
+router.post('/:environmentId/resources/:name/:action', async (req, res) => {
   try {
-    const updated = await controlWebApp(req.params.name, req.params.action);
+    const updated = await controlResource(req.params.environmentId, req.params.name, req.params.action);
     res.json(updated);
   } catch (err) {
     handleEnvironmentError(res, err, 'environment_action_failed');
