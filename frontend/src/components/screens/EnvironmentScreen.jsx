@@ -68,8 +68,7 @@ function ResourceRow({ environmentId, resource, busy, onAction }) {
 }
 
 function EnvironmentPanel({ environment, open, loading, busyResource, onToggle, onAction }) {
-  const resources = environment?.resources || []
-  const actionable = resources.filter((r) => r.startStopCapable)
+  const resources = (environment?.resources || []).filter((r) => r.startStopCapable)
   const billing = environment?.billing
 
   return (
@@ -100,7 +99,7 @@ function EnvironmentPanel({ environment, open, loading, busyResource, onToggle, 
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexShrink: 0 }}>
           {loading && <Pill tone="info">Carregando</Pill>}
-          <Pill tone="brand">{actionable.length} start/stop</Pill>
+          <Pill tone="brand">{resources.length} start/stop</Pill>
           <Pill tone={billing?.unavailable ? 'warn' : 'neutral'}>
             {billing?.unavailable ? 'Billing indisponível' : money(billing?.total, billing?.currency)}
           </Pill>
@@ -117,7 +116,7 @@ function EnvironmentPanel({ environment, open, loading, busyResource, onToggle, 
             </div>
             <div style={{ border: '1px solid var(--border-1)', borderRadius: 'var(--r-md)', padding: 14, background: 'var(--bg-subtle)' }}>
               <div className="t-2xs">Serviços com start/stop</div>
-              <div style={{ fontSize: 24, fontWeight: 700, color: 'var(--fg-1)', marginTop: 4 }}>{actionable.length}</div>
+              <div style={{ fontSize: 24, fontWeight: 700, color: 'var(--fg-1)', marginTop: 4 }}>{resources.length}</div>
             </div>
             <div style={{ border: '1px solid var(--border-1)', borderRadius: 'var(--r-md)', padding: 14, background: 'var(--bg-subtle)' }}>
               <div className="t-2xs">Gasto no mês</div>
@@ -139,9 +138,9 @@ function EnvironmentPanel({ environment, open, loading, busyResource, onToggle, 
           <div>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, marginBottom: 4 }}>
               <div>
-                <div className="t-h2">Recursos</div>
+                <div className="t-h2">Serviços</div>
                 <div className="t-xs" style={{ marginTop: 3 }}>
-                  Ações aparecem apenas para tipos que suportam start/stop. Alguns recursos parados ainda podem manter custos residuais.
+                  Apenas serviços com start/stop são exibidos. Alguns serviços parados ainda podem manter custos residuais.
                 </div>
               </div>
             </div>
@@ -173,7 +172,7 @@ function EnvironmentPanel({ environment, open, loading, busyResource, onToggle, 
             ))}
 
             {!loading && resources.length === 0 && (
-              <div className="t-sm" style={{ padding: '20px 0', color: 'var(--fg-3)' }}>Nenhum recurso encontrado.</div>
+              <div className="t-sm" style={{ padding: '20px 0', color: 'var(--fg-3)' }}>Nenhum serviço com start/stop encontrado.</div>
             )}
           </div>
         </div>
@@ -230,9 +229,16 @@ export default function EnvironmentScreen() {
   const environments = data?.environments || (data?.resourceGroupName ? [data] : [])
   const totals = useMemo(() => {
     const resources = environments.flatMap((environment) => environment.resources || [])
+    const billings = environments
+      .map((environment) => environment.billing)
+      .filter((billing) => billing && !billing.unavailable && typeof billing.total === 'number')
+    const currencies = [...new Set(billings.map((billing) => billing.currency).filter(Boolean))]
     return {
-      resources: resources.length,
       actionable: resources.filter((resource) => resource.startStopCapable).length,
+      billing: billings.reduce((sum, billing) => sum + billing.total, 0),
+      billingCurrency: currencies.length === 1 ? currencies[0] : null,
+      billingAvailable: billings.length > 0,
+      billingMixedCurrency: currencies.length > 1,
     }
   }, [environments])
 
@@ -257,8 +263,11 @@ export default function EnvironmentScreen() {
           <div style={{ fontSize: 24, fontWeight: 700, color: 'var(--fg-1)', marginTop: 4 }}>{environments.length}</div>
         </Card>
         <Card padding={18}>
-          <div className="t-2xs">Recursos monitorados</div>
-          <div style={{ fontSize: 24, fontWeight: 700, color: 'var(--fg-1)', marginTop: 4 }}>{totals.resources}</div>
+          <div className="t-2xs">Gasto atual total</div>
+          <div style={{ fontSize: 24, fontWeight: 700, color: 'var(--fg-1)', marginTop: 4 }}>
+            {totals.billingAvailable ? money(totals.billing, totals.billingCurrency || 'BRL') : 'Indisponível'}
+          </div>
+          {totals.billingMixedCurrency && <div className="t-xs" style={{ marginTop: 3 }}>Moedas diferentes</div>}
         </Card>
         <Card padding={18}>
           <div className="t-2xs">Serviços com start/stop</div>
