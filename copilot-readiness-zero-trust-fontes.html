@@ -1,0 +1,556 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Fontes dos Scores Zero Trust e Copilot Readiness</title>
+  <style>
+    :root {
+      --bg: #f8fafc;
+      --surface: #ffffff;
+      --ink: #172033;
+      --muted: #667085;
+      --line: #d9e2ec;
+      --brand: #1955c8;
+      --brand-soft: #eaf1ff;
+      --ok: #137a4c;
+      --warn: #9a5b00;
+      --risk: #b42318;
+      --soft-risk: #fff1f0;
+      --soft-warn: #fff8e6;
+      --radius: 8px;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      background: var(--bg);
+      color: var(--ink);
+      font-family: Inter, "Segoe UI", Arial, sans-serif;
+      line-height: 1.55;
+    }
+
+    header {
+      background: #102a56;
+      color: #fff;
+      padding: 34px 40px;
+      border-bottom: 4px solid #46a0ff;
+    }
+
+    header .eyebrow {
+      color: #9cc8ff;
+      font-size: 12px;
+      font-weight: 700;
+      letter-spacing: .12em;
+      text-transform: uppercase;
+      margin-bottom: 10px;
+    }
+
+    header h1 {
+      margin: 0;
+      font-size: clamp(28px, 4vw, 44px);
+      line-height: 1.08;
+      max-width: 980px;
+    }
+
+    header p {
+      max-width: 860px;
+      margin: 16px 0 0;
+      color: #d7e8ff;
+      font-size: 17px;
+    }
+
+    main {
+      max-width: 1120px;
+      margin: 0 auto;
+      padding: 32px 24px 64px;
+    }
+
+    nav {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      margin-bottom: 24px;
+    }
+
+    nav a,
+    .tag {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      border-radius: 999px;
+      border: 1px solid var(--line);
+      background: var(--surface);
+      color: var(--brand);
+      padding: 7px 12px;
+      font-size: 13px;
+      font-weight: 700;
+      text-decoration: none;
+    }
+
+    section {
+      background: var(--surface);
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      margin-bottom: 22px;
+      overflow: hidden;
+    }
+
+    .section-head {
+      padding: 20px 24px;
+      border-bottom: 1px solid var(--line);
+      background: #fbfdff;
+    }
+
+    .section-head h2 {
+      margin: 0;
+      font-size: 22px;
+    }
+
+    .section-head p {
+      margin: 8px 0 0;
+      color: var(--muted);
+    }
+
+    .content {
+      padding: 22px 24px 26px;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 14px;
+    }
+
+    .card {
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      padding: 16px;
+      background: #fff;
+    }
+
+    .card h3 {
+      margin: 0 0 8px;
+      font-size: 16px;
+    }
+
+    .card p {
+      margin: 0;
+      color: var(--muted);
+      font-size: 14px;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 14px;
+      margin-top: 12px;
+    }
+
+    th,
+    td {
+      border: 1px solid var(--line);
+      padding: 11px 12px;
+      text-align: left;
+      vertical-align: top;
+    }
+
+    th {
+      background: var(--brand-soft);
+      color: #173b78;
+      font-size: 12px;
+      text-transform: uppercase;
+      letter-spacing: .04em;
+    }
+
+    td strong { color: var(--ink); }
+
+    a {
+      color: var(--brand);
+      font-weight: 700;
+    }
+
+    code {
+      background: #eef2f7;
+      border: 1px solid #dde5ef;
+      border-radius: 5px;
+      padding: 2px 5px;
+      font-family: "SFMono-Regular", Consolas, monospace;
+      font-size: .92em;
+    }
+
+    .callout {
+      border-left: 4px solid var(--brand);
+      background: var(--brand-soft);
+      padding: 14px 16px;
+      border-radius: 6px;
+      margin-bottom: 16px;
+    }
+
+    .formula {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 12px;
+    }
+
+    .metric {
+      background: #f6f8fb;
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      padding: 14px;
+    }
+
+    .metric .value {
+      font-size: 22px;
+      font-weight: 800;
+      color: var(--brand);
+    }
+
+    .metric .label {
+      color: var(--muted);
+      font-size: 13px;
+      margin-top: 4px;
+    }
+
+    .impact-critical { color: var(--risk); font-weight: 800; }
+    .impact-high { color: var(--warn); font-weight: 800; }
+    .impact-medium { color: var(--ok); font-weight: 800; }
+
+    .note {
+      color: var(--muted);
+      font-size: 13px;
+      margin-top: 14px;
+    }
+
+    @media (max-width: 820px) {
+      header { padding: 28px 22px; }
+      main { padding: 22px 14px 48px; }
+      .grid,
+      .formula { grid-template-columns: 1fr; }
+      table { display: block; overflow-x: auto; white-space: nowrap; }
+      .section-head,
+      .content { padding-left: 16px; padding-right: 16px; }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="eyebrow">BB Assessment Platform — Microsoft 365</div>
+    <h1>Fontes dos scores Zero Trust e funcionamento do Copilot Readiness</h1>
+    <p>
+      Este guia mostra quais evidências o assessment coleta, como elas viram score 0-5,
+      e quais documentos oficiais da Microsoft sustentam os critérios de segurança,
+      governança e prontidão para Microsoft 365 Copilot.
+    </p>
+  </header>
+
+  <main>
+    <nav aria-label="Navegação">
+      <a href="#resumo">Resumo executivo</a>
+      <a href="#zero-trust">Zero Trust</a>
+      <a href="#readiness">Copilot Readiness</a>
+      <a href="#checks">Checks e pesos</a>
+      <a href="#fontes">Fontes oficiais</a>
+    </nav>
+
+    <section id="resumo">
+      <div class="section-head">
+        <h2>Resumo executivo</h2>
+        <p>O score não é opinião comercial. Ele é uma síntese técnica baseada em configurações do tenant e documentação pública da Microsoft.</p>
+      </div>
+      <div class="content">
+        <div class="grid">
+          <div class="card">
+            <h3>Zero write</h3>
+            <p>O assessment lê configurações e indicadores administrativos. Não altera políticas, usuários, grupos, arquivos ou mensagens.</p>
+          </div>
+          <div class="card">
+            <h3>Zero conteúdo</h3>
+            <p>A análise não precisa ler e-mails, arquivos, chats ou documentos. O risco é inferido por postura de acesso, governança e proteção.</p>
+          </div>
+          <div class="card">
+            <h3>Score auditável</h3>
+            <p>Cada verificação aponta para um collector do app, um peso de scoring e uma referência oficial de Microsoft 365, Entra, SharePoint ou Purview.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section id="zero-trust">
+      <div class="section-head">
+        <h2>De onde vêm os scores de Zero Trust</h2>
+        <p>A tela Baseline / Zero Trust Hub organiza evidências dos collectors em pilares executivos.</p>
+      </div>
+      <div class="content">
+        <div class="callout">
+          A base conceitual é o modelo Zero Trust da Microsoft: verificar explicitamente, usar menor privilégio e assumir violação. O app traduz esses princípios em sinais mensuráveis do Microsoft 365.
+        </div>
+        <table>
+          <thead>
+            <tr>
+              <th>Pilar no app</th>
+              <th>Collector / origem interna</th>
+              <th>O que mede</th>
+              <th>Referência Microsoft</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><strong>PIM / Privilégios</strong></td>
+              <td><code>domains.entraId.collectors.privileged</code></td>
+              <td>Quantidade de Global Admins, admins convidados e contas privilegiadas sem higiene adequada.</td>
+              <td><a href="https://learn.microsoft.com/en-us/entra/identity/role-based-access-control/best-practices" target="_blank" rel="noreferrer">Best practices for Microsoft Entra roles</a></td>
+            </tr>
+            <tr>
+              <td><strong>MFA</strong></td>
+              <td><code>domains.entraId.collectors.mfa</code></td>
+              <td>Cobertura de autenticação multifator e capacidade de reduzir risco de credencial comprometida.</td>
+              <td><a href="https://learn.microsoft.com/en-us/entra/identity/conditional-access/howto-conditional-access-policy-all-users-mfa" target="_blank" rel="noreferrer">Require MFA for all users</a></td>
+            </tr>
+            <tr>
+              <td><strong>Conditional Access</strong></td>
+              <td><code>domains.entraId.collectors.conditionalAccess</code></td>
+              <td>Políticas ativas, enforcement de MFA, bloqueio de autenticação legada e controle contextual de acesso.</td>
+              <td><a href="https://learn.microsoft.com/en-us/entra/identity/conditional-access/plan-conditional-access" target="_blank" rel="noreferrer">Plan a Conditional Access deployment</a></td>
+            </tr>
+            <tr>
+              <td><strong>Entradas arriscadas</strong></td>
+              <td><code>domains.entraId.collectors.riskySignIns</code></td>
+              <td>Eventos de risco de identidade que indicam possível comprometimento ou comportamento anômalo.</td>
+              <td><a href="https://learn.microsoft.com/en-us/entra/id-protection/concept-identity-protection-risks" target="_blank" rel="noreferrer">Microsoft Entra ID Protection risks</a></td>
+            </tr>
+            <tr>
+              <td><strong>Auditoria</strong></td>
+              <td><code>domains.governance.collectors.audit</code></td>
+              <td>Presença de eventos recentes de auditoria para investigação, compliance e rastreabilidade.</td>
+              <td><a href="https://learn.microsoft.com/en-us/purview/audit-solutions-overview" target="_blank" rel="noreferrer">Microsoft Purview auditing solutions</a></td>
+            </tr>
+          </tbody>
+        </table>
+        <p class="note">Implementação interna relacionada: <code>frontend/src/utils/mapZeroTrustPillars.js</code>.</p>
+      </div>
+    </section>
+
+    <section id="readiness">
+      <div class="section-head">
+        <h2>Como funciona o Copilot Readiness</h2>
+        <p>O domínio de IA não faz novas chamadas ao Graph. Ele sintetiza os resultados já coletados nos domínios de identidade, dados, governança e baseline.</p>
+      </div>
+      <div class="content">
+        <div class="formula">
+          <div class="metric">
+            <div class="value">11</div>
+            <div class="label">checks ponderados</div>
+          </div>
+          <div class="metric">
+            <div class="value">0-5</div>
+            <div class="label">score final normalizado</div>
+          </div>
+          <div class="metric">
+            <div class="value">4.5+</div>
+            <div class="label">limite para “Pronto para IA”</div>
+          </div>
+          <div class="metric">
+            <div class="value">0%</div>
+            <div class="label">acesso ao conteúdo do cliente</div>
+          </div>
+        </div>
+
+        <table>
+          <thead>
+            <tr>
+              <th>Nível</th>
+              <th>Faixa do score</th>
+              <th>Interpretação executiva</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><strong>Pronto para IA</strong></td>
+              <td>4.5 a 5.0</td>
+              <td>Controles mínimos de identidade, dados, auditoria e governança estão suficientemente maduros para avançar com Copilot.</td>
+            </tr>
+            <tr>
+              <td><strong>Prontidão Moderada</strong></td>
+              <td>3.5 a 4.4</td>
+              <td>Há base técnica, mas ainda existem riscos relevantes que devem ser tratados antes de uma ativação ampla.</td>
+            </tr>
+            <tr>
+              <td><strong>Prontidão Parcial</strong></td>
+              <td>2.5 a 3.4</td>
+              <td>Alguns pré-requisitos existem, porém a exposição de dados, identidade ou compliance ainda limita o rollout.</td>
+            </tr>
+            <tr>
+              <td><strong>Baixa Prontidão</strong></td>
+              <td>1.5 a 2.4</td>
+              <td>O tenant tem lacunas estruturais. Recomenda-se remediar antes de comprar ou distribuir licenças em escala.</td>
+            </tr>
+            <tr>
+              <td><strong>Não Pronto</strong></td>
+              <td>0 a 1.4</td>
+              <td>Riscos críticos bloqueiam o uso seguro do Copilot, especialmente por amplificação de permissões e falta de controles.</td>
+            </tr>
+          </tbody>
+        </table>
+
+        <p class="note">
+          Implementação interna relacionada: <code>backend/src/collectors/iaReadiness/index.js</code>.
+          Fórmula: soma dos pesos aprovados dividida pelo peso verificável, multiplicada por 5.
+        </p>
+      </div>
+    </section>
+
+    <section id="checks">
+      <div class="section-head">
+        <h2>Checks e pesos do Copilot Readiness</h2>
+        <p>Os pesos refletem risco para adoção de Copilot: exposição de dados e identidade comprometida pesam mais que maturidade operacional.</p>
+      </div>
+      <div class="content">
+        <table>
+          <thead>
+            <tr>
+              <th>Check</th>
+              <th>Peso</th>
+              <th>Impacto</th>
+              <th>Por que importa para Copilot</th>
+              <th>Fonte principal</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><strong>Links anônimos desabilitados</strong></td>
+              <td>10%</td>
+              <td class="impact-critical">Crítico</td>
+              <td>Links “Anyone” podem expor arquivos sem autenticação. Copilot respeita permissões existentes, então permissões excessivas viram respostas excessivas.</td>
+              <td><a href="https://learn.microsoft.com/en-us/sharepoint/turn-external-sharing-on-or-off" target="_blank" rel="noreferrer">SharePoint sharing settings</a></td>
+            </tr>
+            <tr>
+              <td><strong>Sem permissões Everyone em sites ativos</strong></td>
+              <td>15%</td>
+              <td class="impact-critical">Crítico</td>
+              <td>Permissões amplas para todos os usuários aumentam o risco de descoberta acidental de dados internos via IA.</td>
+              <td><a href="https://learn.microsoft.com/en-us/microsoft-365/copilot/microsoft-365-copilot-privacy" target="_blank" rel="noreferrer">Copilot data, privacy and security</a></td>
+            </tr>
+            <tr>
+              <td><strong>Cobertura MFA maior ou igual a 80%</strong></td>
+              <td>20%</td>
+              <td class="impact-critical">Crítico</td>
+              <td>Uma conta comprometida pode usar Copilot com as mesmas permissões do usuário, resumindo e encontrando dados com alta eficiência.</td>
+              <td><a href="https://learn.microsoft.com/en-us/entra/identity/conditional-access/howto-conditional-access-policy-all-users-mfa" target="_blank" rel="noreferrer">MFA with Conditional Access</a></td>
+            </tr>
+            <tr>
+              <td><strong>Conditional Access ativo</strong></td>
+              <td>15%</td>
+              <td class="impact-high">Alto</td>
+              <td>Define quando, de onde e sob quais sinais usuários podem acessar Microsoft 365 e Copilot.</td>
+              <td><a href="https://learn.microsoft.com/en-us/entra/identity/conditional-access/plan-conditional-access" target="_blank" rel="noreferrer">Conditional Access planning</a></td>
+            </tr>
+            <tr>
+              <td><strong>Sensitivity Labels configurados</strong></td>
+              <td>10%</td>
+              <td class="impact-high">Alto</td>
+              <td>Labels ajudam a classificar e proteger informações sensíveis antes que a IA trabalhe sobre os dados.</td>
+              <td><a href="https://learn.microsoft.com/en-us/purview/sensitivity-labels" target="_blank" rel="noreferrer">Sensitivity labels</a></td>
+            </tr>
+            <tr>
+              <td><strong>Audit Log com eventos recentes</strong></td>
+              <td>4%</td>
+              <td class="impact-high">Alto</td>
+              <td>Sem auditoria, o cliente perde capacidade de investigação, evidência e resposta a incidentes envolvendo IA.</td>
+              <td><a href="https://learn.microsoft.com/en-us/microsoft-365/copilot/microsoft-365-copilot-reports-for-admins" target="_blank" rel="noreferrer">Copilot reports and Purview audit</a></td>
+            </tr>
+            <tr>
+              <td><strong>Política DLP cobrindo Copilot for M365</strong></td>
+              <td>10%</td>
+              <td class="impact-high">Alto</td>
+              <td>DLP reduz risco de exposição de PII, dados financeiros e informações reguladas em fluxos de trabalho com IA.</td>
+              <td><a href="https://learn.microsoft.com/en-us/purview/dlp-learn-about-dlp" target="_blank" rel="noreferrer">Learn about data loss prevention</a></td>
+            </tr>
+            <tr>
+              <td><strong>M365 Apps ativos em desktop</strong></td>
+              <td>10%</td>
+              <td class="impact-high">Alto</td>
+              <td>Copilot depende de apps e requisitos de integração do Microsoft 365 para aparecer e funcionar corretamente nos clientes.</td>
+              <td><a href="https://learn.microsoft.com/en-us/microsoft-365/copilot/microsoft-365-copilot-requirements" target="_blank" rel="noreferrer">Copilot app and network requirements</a></td>
+            </tr>
+            <tr>
+              <td><strong>Plugins do Copilot governados</strong></td>
+              <td>3%</td>
+              <td class="impact-medium">Médio</td>
+              <td>Conectores e agentes podem ampliar fontes de dados disponíveis para respostas; precisam de governança administrativa.</td>
+              <td><a href="https://learn.microsoft.com/en-us/microsoft-365-copilot/extensibility/" target="_blank" rel="noreferrer">Microsoft 365 Copilot extensibility</a></td>
+            </tr>
+            <tr>
+              <td><strong>Autenticação legada bloqueada</strong></td>
+              <td>8%</td>
+              <td class="impact-critical">Crítico</td>
+              <td>Protocolos legados não suportam MFA e são vetor comum para password spray e credential stuffing.</td>
+              <td><a href="https://learn.microsoft.com/en-us/entra/identity/conditional-access/block-legacy-authentication" target="_blank" rel="noreferrer">Block legacy authentication</a></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <section id="fontes">
+      <div class="section-head">
+        <h2>Fontes oficiais para validação com o cliente</h2>
+        <p>Links úteis para justificar o assessment em reunião executiva, proposta comercial ou laudo técnico.</p>
+      </div>
+      <div class="content">
+        <table>
+          <thead>
+            <tr>
+              <th>Tema</th>
+              <th>Documento</th>
+              <th>Uso no assessment</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>Princípios Zero Trust</td>
+              <td><a href="https://learn.microsoft.com/en-us/security/zero-trust/zero-trust-overview" target="_blank" rel="noreferrer">Zero Trust as a security foundation</a></td>
+              <td>Base conceitual para verificação explícita, menor privilégio e assumir violação.</td>
+            </tr>
+            <tr>
+              <td>Requisitos Copilot</td>
+              <td><a href="https://learn.microsoft.com/en-us/microsoft-365/copilot/microsoft-365-copilot-requirements" target="_blank" rel="noreferrer">Microsoft 365 app and network requirements for Copilot</a></td>
+              <td>Validação de licenças, apps, Exchange Online, Teams, OneDrive, rede e privacidade dos apps.</td>
+            </tr>
+            <tr>
+              <td>Dados e permissões</td>
+              <td><a href="https://learn.microsoft.com/en-us/microsoft-365/copilot/microsoft-365-copilot-privacy" target="_blank" rel="noreferrer">Data, Privacy, and Security for Microsoft 365 Copilot</a></td>
+              <td>Explica que Copilot usa Microsoft Graph e mostra somente dados que o usuário tem permissão para acessar.</td>
+            </tr>
+            <tr>
+              <td>Relatórios e auditoria</td>
+              <td><a href="https://learn.microsoft.com/en-us/microsoft-365/copilot/microsoft-365-copilot-reports-for-admins" target="_blank" rel="noreferrer">Microsoft 365 Copilot reporting options for admins</a></td>
+              <td>Justifica readiness report, usage report, Viva Insights e auditoria Purview para governança pós-adoção.</td>
+            </tr>
+            <tr>
+              <td>Compartilhamento SharePoint</td>
+              <td><a href="https://learn.microsoft.com/en-us/sharepoint/turn-external-sharing-on-or-off" target="_blank" rel="noreferrer">Manage sharing settings for SharePoint and OneDrive</a></td>
+              <td>Sustenta análise de links anônimos, guests, sharing externo e restrições de OneDrive/SharePoint.</td>
+            </tr>
+            <tr>
+              <td>Autenticação legada</td>
+              <td><a href="https://learn.microsoft.com/en-us/entra/identity/conditional-access/block-legacy-authentication" target="_blank" rel="noreferrer">Block legacy authentication with Conditional Access</a></td>
+              <td>Sustenta o bloqueio de protocolos que não suportam MFA.</td>
+            </tr>
+            <tr>
+              <td>Classificação de dados</td>
+              <td><a href="https://learn.microsoft.com/en-us/purview/sensitivity-labels" target="_blank" rel="noreferrer">Learn about sensitivity labels</a></td>
+              <td>Sustenta a necessidade de rotular e proteger informação antes da adoção ampla de IA.</td>
+            </tr>
+          </tbody>
+        </table>
+        <p class="note">
+          Este arquivo foi preparado para explicar metodologia, não para substituir uma auditoria formal.
+          O resultado final sempre deve usar os dados coletados do tenant específico no assessment.
+        </p>
+      </div>
+    </section>
+  </main>
+</body>
+</html>
